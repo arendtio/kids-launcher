@@ -26,6 +26,7 @@ import androidx.compose.material.icons.filled.ExitToApp
 import androidx.compose.material.icons.filled.Palette
 import androidx.compose.material.icons.filled.Apps
 import androidx.compose.material.icons.filled.Dashboard
+import androidx.compose.material.icons.filled.Save
 import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
@@ -64,7 +65,7 @@ import com.kidspace.launcher.data.model.TileType
 import com.kidspace.launcher.ui.components.TileIcon
 import com.kidspace.launcher.util.UrlValidator
 
-enum class ParentTab { TILES, APPS, APPEARANCE }
+enum class ParentTab { TILES, APPS, APPEARANCE, BACKUP }
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -80,6 +81,11 @@ fun ParentModeScreen(
     onSaveAppearance: (AppearanceSettings) -> Unit,
     onImportCustomBackground: (android.net.Uri) -> Unit,
     onClearCustomBackground: () -> Unit,
+    onExportBackup: (android.net.Uri) -> Unit,
+    onImportBackup: (android.net.Uri) -> Unit,
+    backupStatusMessage: String?,
+    backupStatusIsError: Boolean,
+    onDismissBackupStatus: () -> Unit,
     modifier: Modifier = Modifier,
 ) {
     var selectedTab by remember { mutableIntStateOf(ParentTab.TILES.ordinal) }
@@ -122,6 +128,12 @@ fun ParentModeScreen(
                     icon = { Icon(Icons.Default.Palette, null) },
                     label = { Text("Look") },
                 )
+                NavigationBarItem(
+                    selected = selectedTab == ParentTab.BACKUP.ordinal,
+                    onClick = { selectedTab = ParentTab.BACKUP.ordinal },
+                    icon = { Icon(Icons.Default.Save, null) },
+                    label = { Text("Backup") },
+                )
             }
         },
         floatingActionButton = {
@@ -152,6 +164,14 @@ fun ParentModeScreen(
                     onSave = onSaveAppearance,
                     onImportCustomBackground = onImportCustomBackground,
                     onClearCustomBackground = onClearCustomBackground,
+                )
+                ParentTab.BACKUP -> BackupTab(
+                    tileCount = tiles.size,
+                    statusMessage = backupStatusMessage,
+                    statusIsError = backupStatusIsError,
+                    onExport = onExportBackup,
+                    onImport = onImportBackup,
+                    onDismissStatus = onDismissBackupStatus,
                 )
             }
         }
