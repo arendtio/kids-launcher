@@ -41,6 +41,8 @@ class MainActivity : ComponentActivity() {
                     app.appearanceRepository,
                     app.backupRepository,
                     app.appUpdateRepository,
+                    app.youtubeSettingsRepository,
+                    app.youtubeSearchRepository,
                 ),
             )
 
@@ -52,7 +54,12 @@ class MainActivity : ComponentActivity() {
             val installedApps by viewModel.installedApps.collectAsState()
             val backupStatus by viewModel.backupStatus.collectAsState()
             val updateStatus by viewModel.updateStatus.collectAsState()
+            val youtubeSearch by viewModel.youtubeSearch.collectAsState()
             val showChildAppearance by viewModel.showChildAppearance.collectAsState()
+            val childYouTubeVideoIds = tiles
+                .filter { it.type == com.kidspace.launcher.data.model.TileType.YOUTUBE }
+                .mapNotNull { com.kidspace.launcher.util.YouTubeUtils.extractVideoId(it.target) }
+                .toSet()
 
             val colorScheme = lightColorScheme(
                 primary = appearance.primaryColor.toComposeColor(),
@@ -128,6 +135,23 @@ class MainActivity : ComponentActivity() {
                                 }
                             },
                             onDismissUpdateStatus = viewModel::dismissUpdateStatus,
+                            youtubeApiKey = youtubeSearch.apiKey,
+                            youtubeQuery = youtubeSearch.query,
+                            isYouTubeSearching = youtubeSearch.isSearching,
+                            youtubeResults = youtubeSearch.results,
+                            selectedYouTubeVideoIds = youtubeSearch.selectedVideoIds,
+                            childYouTubeVideoIds = childYouTubeVideoIds,
+                            youtubeSearchErrorMessage = youtubeSearch.errorMessage,
+                            youtubeSearchStatusMessage = youtubeSearch.statusMessage,
+                            onYouTubeApiKeyChange = viewModel::updateYouTubeApiKey,
+                            onSaveYouTubeApiKey = viewModel::saveYouTubeApiKey,
+                            onYouTubeQueryChange = viewModel::updateYouTubeQuery,
+                            onYouTubeSearch = viewModel::searchYouTubeVideos,
+                            onToggleYouTubeSelection = viewModel::toggleYouTubeSelection,
+                            onSelectAllYouTubeResults = viewModel::selectAllYouTubeResults,
+                            onClearYouTubeSelection = viewModel::clearYouTubeSelection,
+                            onAddSelectedYouTubeVideos = viewModel::addSelectedYouTubeVideos,
+                            onDismissYouTubeSearchStatus = viewModel::dismissYouTubeSearchStatus,
                         )
                     }
                 }
