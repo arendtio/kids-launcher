@@ -9,20 +9,23 @@ import com.kidspace.launcher.data.model.BackgroundType
 fun Long.toComposeColor(): Color = Color(this)
 
 fun presetGradient(presetId: String): Brush = when (presetId) {
+    BackgroundPresets.SKY_MEADOW, "sunny_meadow" -> Brush.verticalGradient(
+        listOf(Color(0xFFB8E4FF), Color(0xFFC8F0D4)),
+    )
     BackgroundPresets.OCEAN_BUBBLES -> Brush.verticalGradient(
-        listOf(Color(0xFF4FC3F7), Color(0xFF00838F)),
+        listOf(Color(0xFF81D4FA), Color(0xFF4DB6AC)),
     )
     BackgroundPresets.CANDY_CLOUDS -> Brush.verticalGradient(
-        listOf(Color(0xFFF48FB1), Color(0xFFCE93D8)),
+        listOf(Color(0xFFF8BBD9), Color(0xFFD1C4E9)),
     )
     BackgroundPresets.STARRY_NIGHT -> Brush.verticalGradient(
-        listOf(Color(0xFF1A237E), Color(0xFF4527A0)),
+        listOf(Color(0xFF283593), Color(0xFF5E35B1)),
     )
     BackgroundPresets.RAINBOW_HILLS -> Brush.verticalGradient(
-        listOf(Color(0xFFFF8A65), Color(0xFFFFD54F), Color(0xFF81C784)),
+        listOf(Color(0xFFFFAB91), Color(0xFFFFE082), Color(0xFFA5D6A7)),
     )
     else -> Brush.verticalGradient(
-        listOf(Color(0xFFFFF176), Color(0xFFAED581)),
+        listOf(Color(0xFFB8E4FF), Color(0xFFC8F0D4)),
     )
 }
 

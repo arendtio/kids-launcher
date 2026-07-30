@@ -11,6 +11,7 @@ captures/
 *.apk
 *.ap_
 *.aab
+!releases/*.apk
 
 # Android Studio
 *.hprof

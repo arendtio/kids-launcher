@@ -7,6 +7,7 @@ import androidx.datastore.preferences.core.edit
 import androidx.datastore.preferences.core.longPreferencesKey
 import androidx.datastore.preferences.core.stringPreferencesKey
 import androidx.datastore.preferences.preferencesDataStore
+import com.kidspace.launcher.data.model.AppearanceDefaults
 import com.kidspace.launcher.data.model.AppearanceSettings
 import com.kidspace.launcher.data.model.BackgroundPresets
 import com.kidspace.launcher.data.model.BackgroundType
@@ -22,11 +23,11 @@ class AppearanceRepository(private val context: Context) {
         AppearanceSettings(
             backgroundType = prefs[Keys.BACKGROUND_TYPE]?.let { BackgroundType.valueOf(it) }
                 ?: BackgroundType.PRESET,
-            backgroundPreset = prefs[Keys.BACKGROUND_PRESET] ?: BackgroundPresets.SUNNY_MEADOW,
+            backgroundPreset = prefs[Keys.BACKGROUND_PRESET] ?: AppearanceDefaults.BACKGROUND_PRESET,
             customBackgroundUri = prefs[Keys.CUSTOM_BACKGROUND_URI],
-            primaryColor = prefs[Keys.PRIMARY_COLOR] ?: 0xFF6B9DFF,
-            secondaryColor = prefs[Keys.SECONDARY_COLOR] ?: 0xFFFFD93D,
-            accentColor = prefs[Keys.ACCENT_COLOR] ?: 0xFFFF6B9D,
+            primaryColor = prefs[Keys.PRIMARY_COLOR] ?: AppearanceDefaults.PRIMARY,
+            secondaryColor = prefs[Keys.SECONDARY_COLOR] ?: AppearanceDefaults.SECONDARY,
+            accentColor = prefs[Keys.ACCENT_COLOR] ?: AppearanceDefaults.ACCENT,
         )
     }
 
