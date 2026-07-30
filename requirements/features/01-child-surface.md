@@ -11,7 +11,9 @@ As a child using the device, I want a colorful home screen with big picture butt
 - [ ] Tiles have large tap targets suitable for small hands
 - [ ] Tapping an **app** tile launches that application
 - [ ] Tapping a **website** tile opens the URL in the default browser
-- [ ] Tapping a **YouTube** tile opens the video URL (YouTube app or browser)
+- [ ] Tapping a **YouTube** tile opens the video in a focused embedded player (in-app) or external browser (parent choice)
+- [ ] In-app YouTube playback uses a full-screen embed player that loops the same video instead of auto-advancing
+- [ ] YouTube tiles show the **video thumbnail** as their tile icon
 - [ ] Background image and theme colors are applied to the child surface
 - [ ] Empty state is friendly when no tiles are configured
 - [ ] Child surface adapts to **landscape orientation** (wider grid, compact header) as well as portrait
@@ -23,4 +25,4 @@ As a child using the device, I want a colorful home screen with big picture butt
 |---------|---------------------|--------------------------------|
 | App     | Package name        | Application icon               |
 | Website | HTTPS URL           | Favicon, else random permanent |
-| YouTube | YouTube video URL   | Favicon/thumbnail, else random |
+| YouTube | YouTube video URL   | Video thumbnail (`img.youtube.com`) |
