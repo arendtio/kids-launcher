@@ -9,6 +9,7 @@ A child-friendly Android home launcher for use on a regular (adult) Android prof
 - **App management** — Browse all installed apps and add them to the child surface
 - **Custom links** — Add websites and YouTube videos as tiles
 - **Customization** — Preset backgrounds, color themes, reorder and remove tiles
+- **Backup & restore** — Export/import all settings as JSON (parent area → Backup tab)
 
 ## Requirements
 
@@ -35,7 +36,12 @@ After installing the APK, open KidSpace and choose **Always** when Android asks 
 
 ## Screenshots
 
-Preview images are in [`docs/screenshots/`](docs/screenshots/).
+Preview images are in [`docs/screenshots/`](docs/screenshots/):
+
+- `01-child-home.png` — 4-column tile grid with full-size icons
+- `02-parent-gate.png` — English number-word challenge
+- `03-parent-mode.png` — Tile management
+- `04-appearance.png` — Background presets and photo upload
 
 ## License
 

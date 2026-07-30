@@ -2,6 +2,7 @@ package com.kidspace.launcher.ui.components
 
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
@@ -14,7 +15,6 @@ import androidx.compose.material.icons.filled.Pets
 import androidx.compose.material.icons.filled.Star
 import androidx.compose.material.icons.filled.WbSunny
 import androidx.compose.material3.Icon
-import androidx.compose.material3.MaterialTheme
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
@@ -37,9 +37,16 @@ fun TileIcon(
     target: String,
     iconKey: String,
     modifier: Modifier = Modifier,
-    size: Dp = 72.dp,
+    size: Dp? = null,
     tint: Color = Color.White,
 ) {
+    val iconModifier = if (size != null) {
+        modifier.size(size)
+    } else {
+        modifier
+    }
+    val shape = RoundedCornerShape(12.dp)
+
     when {
         iconKey.startsWith("app:") -> {
             val context = LocalContext.current
@@ -51,11 +58,11 @@ fun TileIcon(
                 AsyncImage(
                     model = drawable,
                     contentDescription = null,
-                    modifier = modifier.size(size).clip(RoundedCornerShape(16.dp)),
-                    contentScale = ContentScale.Fit,
+                    modifier = iconModifier.clip(shape),
+                    contentScale = ContentScale.Crop,
                 )
             } else {
-                FallbackIcon(iconKey, modifier, size, tint)
+                FallbackIcon(iconKey, iconModifier, size, tint)
             }
         }
         iconKey.startsWith("favicon:") || iconKey.startsWith("http") -> {
@@ -66,17 +73,17 @@ fun TileIcon(
                     .crossfade(true)
                     .build(),
                 contentDescription = null,
-                modifier = modifier.size(size).clip(RoundedCornerShape(16.dp)),
+                modifier = iconModifier.clip(shape),
                 contentScale = ContentScale.Crop,
                 loading = {
-                    FallbackIcon(iconKey, Modifier, size, tint.copy(alpha = 0.5f))
+                    FallbackIcon(iconKey, Modifier.fillMaxSize(), size, tint.copy(alpha = 0.5f))
                 },
                 error = {
-                    FallbackIcon(iconKey, Modifier, size, tint)
+                    FallbackIcon(iconKey, Modifier.fillMaxSize(), size, tint)
                 },
             )
         }
-        else -> FallbackIcon(iconKey, modifier, size, tint)
+        else -> FallbackIcon(iconKey, iconModifier, size, tint)
     }
 }
 
@@ -84,23 +91,23 @@ fun TileIcon(
 private fun FallbackIcon(
     iconKey: String,
     modifier: Modifier,
-    size: Dp,
+    size: Dp?,
     tint: Color,
 ) {
     val iconName = iconKey.removePrefix("random:")
     val vector = randomIconVector(iconName)
+    val boxModifier = if (size != null) modifier.size(size) else modifier
     Box(
-        modifier = modifier
-            .size(size)
+        modifier = boxModifier
             .clip(CircleShape)
-            .background(tint.copy(alpha = 0.25f)),
+            .background(tint.copy(alpha = 0.2f)),
         contentAlignment = Alignment.Center,
     ) {
         Icon(
             imageVector = vector,
             contentDescription = null,
             tint = tint,
-            modifier = Modifier.size(size * 0.55f),
+            modifier = if (size != null) Modifier.size(size * 0.55f) else Modifier.fillMaxSize(0.65f),
         )
     }
 }
