@@ -14,14 +14,17 @@ import androidx.compose.runtime.getValue
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
 import androidx.lifecycle.viewmodel.compose.viewModel
+import com.kidspace.launcher.BuildConfig
 import com.kidspace.launcher.domain.LauncherActions
 import com.kidspace.launcher.ui.AppScreen
+import com.kidspace.launcher.ui.LauncherLoadingScreen
 import com.kidspace.launcher.ui.LauncherViewModel
 import com.kidspace.launcher.ui.child.ChildAppearanceScreen
 import com.kidspace.launcher.ui.child.ChildHomeScreen
 import com.kidspace.launcher.ui.parent.ParentGateScreen
 import com.kidspace.launcher.ui.parent.ParentModeScreen
 import com.kidspace.launcher.ui.theme.toComposeColor
+import com.kidspace.launcher.update.AppUpdateInstaller
 
 class MainActivity : ComponentActivity() {
     override fun onCreate(savedInstanceState: Bundle?) {
@@ -37,15 +40,18 @@ class MainActivity : ComponentActivity() {
                     app.appRepository,
                     app.appearanceRepository,
                     app.backupRepository,
+                    app.appUpdateRepository,
                 ),
             )
 
             val screen by viewModel.screen.collectAsState()
+            val isLauncherReady by viewModel.isLauncherReady.collectAsState()
             val tiles by viewModel.tiles.collectAsState()
             val appearance by viewModel.appearance.collectAsState()
             val parentGate by viewModel.parentGate.collectAsState()
             val installedApps by viewModel.installedApps.collectAsState()
             val backupStatus by viewModel.backupStatus.collectAsState()
+            val updateStatus by viewModel.updateStatus.collectAsState()
             val showChildAppearance by viewModel.showChildAppearance.collectAsState()
 
             val colorScheme = lightColorScheme(
@@ -57,7 +63,9 @@ class MainActivity : ComponentActivity() {
 
             MaterialTheme(colorScheme = colorScheme) {
                 Surface(modifier = Modifier.fillMaxSize()) {
-                    when (screen) {
+                    if (!isLauncherReady) {
+                        LauncherLoadingScreen()
+                    } else when (screen) {
                         AppScreen.CHILD -> Box(Modifier.fillMaxSize()) {
                             ChildHomeScreen(
                                 tiles = tiles,
@@ -108,6 +116,18 @@ class MainActivity : ComponentActivity() {
                             backupStatusMessage = backupStatus.message,
                             backupStatusIsError = backupStatus.isError,
                             onDismissBackupStatus = viewModel::dismissBackupStatus,
+                            appVersionName = BuildConfig.VERSION_NAME,
+                            isUpdateDownloading = updateStatus.isDownloading,
+                            updateStatusMessage = updateStatus.message,
+                            updateStatusIsError = updateStatus.isError,
+                            canInstallUpdate = updateStatus.downloadedApk != null,
+                            onDownloadUpdate = viewModel::downloadLatestUpdate,
+                            onInstallUpdate = {
+                                updateStatus.downloadedApk?.let { apk ->
+                                    AppUpdateInstaller.install(this@MainActivity, apk)
+                                }
+                            },
+                            onDismissUpdateStatus = viewModel::dismissUpdateStatus,
                         )
                     }
                 }

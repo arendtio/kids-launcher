@@ -16,6 +16,7 @@ As a child using the device, I want a colorful home screen with big picture butt
 - [ ] YouTube tiles show the **video thumbnail** as their tile icon
 - [ ] Background image and theme colors are applied to the child surface
 - [ ] Empty state is friendly when no tiles are configured
+- [ ] A loading screen is shown while tiles and appearance settings are loading on startup
 - [ ] Child surface adapts to **landscape orientation** (wider grid, compact header) as well as portrait
 - [ ] In-app browser and launcher activities support rotation (no forced portrait lock)
 
