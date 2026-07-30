@@ -11,14 +11,17 @@ import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.FileDownload
 import androidx.compose.material.icons.filled.FileUpload
+import androidx.compose.material.icons.filled.SystemUpdate
 import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.Button
 import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
+import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.Icon
 import androidx.compose.material3.OutlinedButton
 import androidx.compose.material3.Text
@@ -33,6 +36,7 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import com.kidspace.launcher.update.AppUpdateConfig
 
 @Composable
 fun BackupTab(
@@ -42,6 +46,14 @@ fun BackupTab(
     onExport: (Uri) -> Unit,
     onImport: (Uri) -> Unit,
     onDismissStatus: () -> Unit,
+    appVersionName: String,
+    isUpdateDownloading: Boolean,
+    updateStatusMessage: String?,
+    updateStatusIsError: Boolean,
+    canInstallUpdate: Boolean,
+    onDownloadUpdate: () -> Unit,
+    onInstallUpdate: () -> Unit,
+    onDismissUpdateStatus: () -> Unit,
     modifier: Modifier = Modifier,
 ) {
     var pendingImportUri by remember { mutableStateOf<Uri?>(null) }
@@ -108,24 +120,78 @@ fun BackupTab(
             }
         }
 
+        item {
+            Text("App Update", fontWeight = FontWeight.Bold, fontSize = 18.sp)
+            Spacer(modifier = Modifier.height(8.dp))
+            Text(
+                "Download the latest debug build from GitHub and install it on this device.",
+                fontSize = 14.sp,
+                color = Color.Gray,
+            )
+        }
+
+        item {
+            Card(
+                colors = CardDefaults.cardColors(containerColor = Color.White),
+                elevation = CardDefaults.cardElevation(2.dp),
+            ) {
+                Column(modifier = Modifier.padding(16.dp)) {
+                    Text("Installed version: $appVersionName", fontWeight = FontWeight.SemiBold)
+                    Spacer(modifier = Modifier.height(8.dp))
+                    Text("Source: ${AppUpdateConfig.DEBUG_APK_URL}", fontSize = 12.sp, color = Color.Gray)
+                }
+            }
+        }
+
+        item {
+            Button(
+                onClick = onDownloadUpdate,
+                enabled = !isUpdateDownloading,
+                modifier = Modifier.fillMaxWidth(),
+            ) {
+                if (isUpdateDownloading) {
+                    CircularProgressIndicator(
+                        modifier = Modifier.size(20.dp),
+                        strokeWidth = 2.dp,
+                        color = Color.White,
+                    )
+                    Text("  Downloading…")
+                } else {
+                    Icon(Icons.Default.SystemUpdate, contentDescription = null)
+                    Text("  Download latest version")
+                }
+            }
+        }
+
+        if (canInstallUpdate) {
+            item {
+                OutlinedButton(
+                    onClick = onInstallUpdate,
+                    modifier = Modifier.fillMaxWidth(),
+                ) {
+                    Icon(Icons.Default.SystemUpdate, contentDescription = null)
+                    Text("  Install update")
+                }
+            }
+        }
+
         if (statusMessage != null) {
             item {
-                Card(
-                    colors = CardDefaults.cardColors(
-                        containerColor = if (statusIsError) Color(0xFFFFEBEE) else Color(0xFFE8F5E9),
-                    ),
-                ) {
-                    Column(modifier = Modifier.padding(16.dp)) {
-                        Text(
-                            text = statusMessage,
-                            color = if (statusIsError) Color(0xFFC62828) else Color(0xFF2E7D32),
-                            fontSize = 14.sp,
-                        )
-                        TextButton(onClick = onDismissStatus) {
-                            Text("Dismiss")
-                        }
-                    }
-                }
+                StatusCard(
+                    message = statusMessage,
+                    isError = statusIsError,
+                    onDismiss = onDismissStatus,
+                )
+            }
+        }
+
+        if (updateStatusMessage != null) {
+            item {
+                StatusCard(
+                    message = updateStatusMessage,
+                    isError = updateStatusIsError,
+                    onDismiss = onDismissUpdateStatus,
+                )
             }
         }
     }
@@ -151,5 +217,29 @@ fun BackupTab(
                 }
             },
         )
+    }
+}
+
+@Composable
+private fun StatusCard(
+    message: String,
+    isError: Boolean,
+    onDismiss: () -> Unit,
+) {
+    Card(
+        colors = CardDefaults.cardColors(
+            containerColor = if (isError) Color(0xFFFFEBEE) else Color(0xFFE8F5E9),
+        ),
+    ) {
+        Column(modifier = Modifier.padding(16.dp)) {
+            Text(
+                text = message,
+                color = if (isError) Color(0xFFC62828) else Color(0xFF2E7D32),
+                fontSize = 14.sp,
+            )
+            TextButton(onClick = onDismiss) {
+                Text("Dismiss")
+            }
+        }
     }
 }

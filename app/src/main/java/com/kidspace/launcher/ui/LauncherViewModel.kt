@@ -14,13 +14,17 @@ import com.kidspace.launcher.data.repository.AppRepository
 import com.kidspace.launcher.data.repository.BackupRepository
 import com.kidspace.launcher.data.repository.TileRepository
 import com.kidspace.launcher.domain.ParentGateChallenge
+import com.kidspace.launcher.update.AppUpdateRepository
 import com.kidspace.launcher.util.IconKeyGenerator
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.SharingStarted
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
+import kotlinx.coroutines.flow.combine
+import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.flow.stateIn
 import kotlinx.coroutines.launch
+import java.io.File
 
 enum class AppScreen {
     CHILD,
@@ -39,11 +43,19 @@ data class BackupStatus(
     val isError: Boolean = false,
 )
 
+data class AppUpdateStatus(
+    val isDownloading: Boolean = false,
+    val downloadedApk: File? = null,
+    val message: String? = null,
+    val isError: Boolean = false,
+)
+
 class LauncherViewModel(
     private val tileRepository: TileRepository,
     private val appRepository: AppRepository,
     private val appearanceRepository: AppearanceRepository,
     private val backupRepository: BackupRepository,
+    private val appUpdateRepository: AppUpdateRepository,
 ) : ViewModel() {
 
     val tiles: StateFlow<List<ChildTile>> = tileRepository.observeTiles()
@@ -66,6 +78,23 @@ class LauncherViewModel(
 
     private val _showChildAppearance = MutableStateFlow(false)
     val showChildAppearance: StateFlow<Boolean> = _showChildAppearance.asStateFlow()
+
+    private val _isLauncherReady = MutableStateFlow(false)
+    val isLauncherReady: StateFlow<Boolean> = _isLauncherReady.asStateFlow()
+
+    private val _updateStatus = MutableStateFlow(AppUpdateStatus())
+    val updateStatus: StateFlow<AppUpdateStatus> = _updateStatus.asStateFlow()
+
+    init {
+        viewModelScope.launch {
+            combine(
+                tileRepository.observeTiles(),
+                appearanceRepository.observeSettings(),
+            ) { _, _ -> }
+                .first()
+            _isLauncherReady.value = true
+        }
+    }
 
     fun requestParentAccess() {
         _parentGate.value = ParentGateUiState(challenge = ParentGateChallenge.generate())
@@ -245,6 +274,32 @@ class LauncherViewModel(
         _backupStatus.value = BackupStatus()
     }
 
+    fun downloadLatestUpdate() {
+        viewModelScope.launch {
+            _updateStatus.value = AppUpdateStatus(
+                isDownloading = true,
+                message = "Downloading latest version…",
+            )
+            runCatching { appUpdateRepository.downloadLatestApk() }
+                .onSuccess { file ->
+                    _updateStatus.value = AppUpdateStatus(
+                        downloadedApk = file,
+                        message = "Download complete. Tap Install update to open the installer.",
+                    )
+                }
+                .onFailure { error ->
+                    _updateStatus.value = AppUpdateStatus(
+                        message = "Download failed: ${error.message ?: "Unknown error"}",
+                        isError = true,
+                    )
+                }
+        }
+    }
+
+    fun dismissUpdateStatus() {
+        _updateStatus.value = AppUpdateStatus()
+    }
+
     fun openChildAppearance() {
         _showChildAppearance.value = true
     }
@@ -258,6 +313,7 @@ class LauncherViewModel(
         private val appRepository: AppRepository,
         private val appearanceRepository: AppearanceRepository,
         private val backupRepository: BackupRepository,
+        private val appUpdateRepository: AppUpdateRepository,
     ) : ViewModelProvider.Factory {
         @Suppress("UNCHECKED_CAST")
         override fun <T : ViewModel> create(modelClass: Class<T>): T {
@@ -266,6 +322,7 @@ class LauncherViewModel(
                 appRepository,
                 appearanceRepository,
                 backupRepository,
+                appUpdateRepository,
             ) as T
         }
     }
