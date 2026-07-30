@@ -124,8 +124,18 @@ private fun ChildHeader(
             Text(
                 text = "Tap your favorites below!",
                 fontSize = 16.sp,
+                color = Color.White.copy(alpha = 0.95f),
+                fontWeight = FontWeight.Medium,
+                textAlign = TextAlign.Center,
+            )
+            Spacer(modifier = Modifier.height(6.dp))
+            Text(
+                text = "Parents: long-press here for parent mode",
+                fontSize = 13.sp,
                 color = secondary,
                 fontWeight = FontWeight.Medium,
+                textAlign = TextAlign.Center,
+                lineHeight = 16.sp,
             )
         }
     }
