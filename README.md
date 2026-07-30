@@ -9,6 +9,7 @@ A child-friendly Android home launcher for use on a regular (adult) Android prof
 - **App management** — Browse all installed apps and add them to the child surface
 - **Custom links** — Add websites and YouTube videos as tiles
 - **Customization** — Preset backgrounds, color themes, reorder and remove tiles
+- **Backup & restore** — Export/import all settings as JSON (parent area → Backup tab)
 
 ## Requirements
 

@@ -56,6 +56,9 @@ interface ChildTileDao {
     @Query("DELETE FROM child_tiles WHERE id = :id")
     suspend fun deleteById(id: Long)
 
+    @Query("DELETE FROM child_tiles")
+    suspend fun deleteAll()
+
     @Query("SELECT COALESCE(MAX(sortOrder), -1) FROM child_tiles")
     suspend fun maxSortOrder(): Int
 }

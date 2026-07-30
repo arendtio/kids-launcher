@@ -18,6 +18,16 @@ class TileRepository(private val dao: ChildTileDao) {
 
     suspend fun removeTile(id: Long) = dao.deleteById(id)
 
+    suspend fun getAllTiles(): List<ChildTile> =
+        dao.getAll().map { it.toModel() }
+
+    suspend fun replaceAllTiles(tiles: List<ChildTile>) {
+        dao.deleteAll()
+        tiles.sortedBy { it.sortOrder }.forEachIndexed { index, tile ->
+            dao.insert(tile.copy(id = 0, sortOrder = index).toEntity())
+        }
+    }
+
     suspend fun reorderTiles(tiles: List<ChildTile>) {
         tiles.forEachIndexed { index, tile ->
             dao.update(tile.copy(sortOrder = index).toEntity())
