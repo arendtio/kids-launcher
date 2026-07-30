@@ -91,6 +91,12 @@ class MainActivity : ComponentActivity() {
                             appearance = appearance,
                             onExitParentMode = viewModel::exitParentMode,
                             onAddApp = viewModel::addAppTile,
+                            onRemoveApp = { app ->
+                                viewModel.removeAppFromChildSurface(app.packageName)
+                            },
+                            onLaunchApp = { app ->
+                                LauncherActions.launchApp(this@MainActivity, app.packageName)
+                            },
                             onAddLink = viewModel::addLinkTile,
                             onRemoveTile = viewModel::removeTile,
                             onMoveTile = viewModel::moveTile,

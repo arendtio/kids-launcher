@@ -14,6 +14,8 @@ As a child using the device, I want a colorful home screen with big picture butt
 - [ ] Tapping a **YouTube** tile opens the video URL (YouTube app or browser)
 - [ ] Background image and theme colors are applied to the child surface
 - [ ] Empty state is friendly when no tiles are configured
+- [ ] Child surface adapts to **landscape orientation** (wider grid, compact header) as well as portrait
+- [ ] In-app browser and launcher activities support rotation (no forced portrait lock)
 
 ## Tile Types
 

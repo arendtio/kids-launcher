@@ -19,6 +19,8 @@ import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Add
+import androidx.compose.material.icons.filled.PlayArrow
+import androidx.compose.material.icons.filled.Remove
 import androidx.compose.material.icons.filled.ArrowDownward
 import androidx.compose.material.icons.filled.ArrowUpward
 import androidx.compose.material.icons.filled.Delete
@@ -81,6 +83,8 @@ fun ParentModeScreen(
     appearance: AppearanceSettings,
     onExitParentMode: () -> Unit,
     onAddApp: (InstalledApp) -> Unit,
+    onRemoveApp: (InstalledApp) -> Unit,
+    onLaunchApp: (InstalledApp) -> Unit,
     onAddLink: (label: String, url: String, type: TileType, webConfig: WebLinkConfig) -> Unit,
     onRemoveTile: (Long) -> Unit,
     onMoveTile: (Long, Int) -> Unit,
@@ -162,8 +166,13 @@ fun ParentModeScreen(
                 )
                 ParentTab.APPS -> AppsTab(
                     apps = installedApps,
-                    existingTargets = tiles.map { it.target }.toSet(),
+                    childAppPackages = tiles
+                        .filter { it.type == TileType.APP }
+                        .map { it.target }
+                        .toSet(),
                     onAdd = onAddApp,
+                    onRemove = onRemoveApp,
+                    onLaunch = onLaunchApp,
                 )
                 ParentTab.APPEARANCE -> AppearanceTab(
                     settings = appearance,
@@ -262,21 +271,25 @@ private fun TilesEditorTab(
 @Composable
 private fun AppsTab(
     apps: List<InstalledApp>,
-    existingTargets: Set<String>,
+    childAppPackages: Set<String>,
     onAdd: (InstalledApp) -> Unit,
+    onRemove: (InstalledApp) -> Unit,
+    onLaunch: (InstalledApp) -> Unit,
 ) {
     LazyColumn(
         contentPadding = PaddingValues(16.dp),
         verticalArrangement = Arrangement.spacedBy(8.dp),
     ) {
         items(apps, key = { it.packageName }) { app ->
-            val alreadyAdded = app.packageName in existingTargets
+            val alreadyAdded = app.packageName in childAppPackages
             Card(
                 modifier = Modifier
                     .fillMaxWidth()
-                    .clickable(enabled = !alreadyAdded) { onAdd(app) },
+                    .clickable {
+                        if (alreadyAdded) onRemove(app) else onAdd(app)
+                    },
                 colors = CardDefaults.cardColors(
-                    containerColor = if (alreadyAdded) Color.LightGray.copy(0.3f) else Color.White,
+                    containerColor = if (alreadyAdded) Color(0xFFE8EAF6) else Color.White,
                 ),
             ) {
                 Row(
@@ -289,15 +302,31 @@ private fun AppsTab(
                         iconKey = "app:${app.packageName}",
                         size = 40.dp,
                     )
-                    Text(
-                        text = app.label,
+                    Column(
                         modifier = Modifier
                             .weight(1f)
                             .padding(horizontal = 12.dp),
-                        fontWeight = FontWeight.Medium,
-                    )
+                    ) {
+                        Text(app.label, fontWeight = FontWeight.Medium)
+                        Text(
+                            text = if (alreadyAdded) "On child screen · tap to remove" else "Tap to add to child screen",
+                            fontSize = 11.sp,
+                            color = Color.Gray,
+                        )
+                    }
+                    IconButton(onClick = { onLaunch(app) }) {
+                        Icon(
+                            Icons.Default.PlayArrow,
+                            contentDescription = "Start",
+                            tint = Color(0xFF3949AB),
+                        )
+                    }
                     if (alreadyAdded) {
-                        Text("Added", fontSize = 12.sp, color = Color.Gray)
+                        Icon(
+                            Icons.Default.Remove,
+                            contentDescription = "Remove from child screen",
+                            tint = Color(0xFFD32F2F),
+                        )
                     } else {
                         Icon(Icons.Default.Add, "Add", tint = Color(0xFF3949AB))
                     }
