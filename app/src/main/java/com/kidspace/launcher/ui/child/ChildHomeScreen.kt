@@ -13,12 +13,16 @@ import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.lazy.grid.GridCells
+import androidx.compose.foundation.lazy.grid.GridItemSpan
 import androidx.compose.foundation.lazy.grid.LazyVerticalGrid
 import androidx.compose.foundation.lazy.grid.items
 import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.filled.Palette
 import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
 import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.Icon
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
@@ -42,6 +46,7 @@ fun ChildHomeScreen(
     tiles: List<ChildTile>,
     appearance: AppearanceSettings,
     onTileClick: (ChildTile) -> Unit,
+    onAppearanceTileClick: () -> Unit,
     onParentAccessRequest: () -> Unit,
     modifier: Modifier = Modifier,
 ) {
@@ -67,16 +72,18 @@ fun ChildHomeScreen(
 
             Spacer(modifier = Modifier.height(16.dp))
 
-            if (tiles.isEmpty()) {
-                EmptyChildState(accent = accent)
-            } else {
-                LazyVerticalGrid(
-                    columns = GridCells.Fixed(4),
-                    contentPadding = PaddingValues(bottom = 16.dp),
-                    horizontalArrangement = Arrangement.spacedBy(10.dp),
-                    verticalArrangement = Arrangement.spacedBy(10.dp),
-                    modifier = Modifier.fillMaxSize(),
-                ) {
+            LazyVerticalGrid(
+                columns = GridCells.Fixed(4),
+                contentPadding = PaddingValues(bottom = 16.dp),
+                horizontalArrangement = Arrangement.spacedBy(10.dp),
+                verticalArrangement = Arrangement.spacedBy(10.dp),
+                modifier = Modifier.fillMaxSize(),
+            ) {
+                if (tiles.isEmpty()) {
+                    item(span = { GridItemSpan(4) }) {
+                        EmptyChildState(accent = accent)
+                    }
+                } else {
                     items(tiles, key = { it.id }) { tile ->
                         ChildTileCard(
                             tile = tile,
@@ -84,6 +91,13 @@ fun ChildHomeScreen(
                             onClick = { onTileClick(tile) },
                         )
                     }
+                }
+                item(key = "appearance_tile") {
+                    AppearanceTileCard(
+                        primary = primary,
+                        accent = accent,
+                        onClick = onAppearanceTileClick,
+                    )
                 }
             }
         }
@@ -172,6 +186,49 @@ private fun EmptyChildState(accent: Color) {
                     modifier = Modifier.padding(top = 8.dp),
                 )
             }
+        }
+    }
+}
+
+@OptIn(ExperimentalFoundationApi::class)
+@Composable
+private fun AppearanceTileCard(
+    primary: Color,
+    accent: Color,
+    onClick: () -> Unit,
+) {
+    Card(
+        modifier = Modifier
+            .aspectRatio(1f)
+            .clip(RoundedCornerShape(16.dp))
+            .combinedClickable(onClick = onClick),
+        shape = RoundedCornerShape(16.dp),
+        colors = CardDefaults.cardColors(containerColor = accent.copy(alpha = 0.9f)),
+        elevation = CardDefaults.cardElevation(defaultElevation = 6.dp),
+    ) {
+        Column(
+            modifier = Modifier
+                .fillMaxSize()
+                .padding(6.dp),
+            horizontalAlignment = Alignment.CenterHorizontally,
+            verticalArrangement = Arrangement.Center,
+        ) {
+            Icon(
+                imageVector = Icons.Default.Palette,
+                contentDescription = null,
+                tint = Color.White,
+                modifier = Modifier.fillMaxWidth(0.55f).aspectRatio(1f),
+            )
+            Spacer(modifier = Modifier.height(4.dp))
+            Text(
+                text = "My Look",
+                fontSize = 11.sp,
+                fontWeight = FontWeight.Bold,
+                color = Color.White,
+                textAlign = TextAlign.Center,
+                maxLines = 2,
+                lineHeight = 13.sp,
+            )
         }
     }
 }

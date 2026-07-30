@@ -8,7 +8,9 @@ import androidx.room.PrimaryKey
 import androidx.room.Query
 import androidx.room.Update
 import com.kidspace.launcher.data.model.ChildTile
+import com.kidspace.launcher.data.model.PermissionPolicy
 import com.kidspace.launcher.data.model.TileType
+import com.kidspace.launcher.data.model.WebLaunchMode
 import kotlinx.coroutines.flow.Flow
 
 @Entity(tableName = "child_tiles")
@@ -19,6 +21,10 @@ data class ChildTileEntity(
     val target: String,
     val iconKey: String,
     val sortOrder: Int,
+    val webLaunchMode: String = WebLaunchMode.EXTERNAL.name,
+    val cameraPolicy: String = PermissionPolicy.GRANT.name,
+    val microphonePolicy: String = PermissionPolicy.GRANT.name,
+    val locationPolicy: String = PermissionPolicy.GRANT.name,
 )
 
 fun ChildTileEntity.toModel() = ChildTile(
@@ -28,6 +34,10 @@ fun ChildTileEntity.toModel() = ChildTile(
     target = target,
     iconKey = iconKey,
     sortOrder = sortOrder,
+    webLaunchMode = WebLaunchMode.valueOf(webLaunchMode),
+    cameraPolicy = PermissionPolicy.valueOf(cameraPolicy),
+    microphonePolicy = PermissionPolicy.valueOf(microphonePolicy),
+    locationPolicy = PermissionPolicy.valueOf(locationPolicy),
 )
 
 fun ChildTile.toEntity() = ChildTileEntity(
@@ -37,6 +47,10 @@ fun ChildTile.toEntity() = ChildTileEntity(
     target = target,
     iconKey = iconKey,
     sortOrder = sortOrder,
+    webLaunchMode = webLaunchMode.name,
+    cameraPolicy = cameraPolicy.name,
+    microphonePolicy = microphonePolicy.name,
+    locationPolicy = locationPolicy.name,
 )
 
 @Dao

@@ -11,6 +11,16 @@ enum class BackgroundType {
     CUSTOM,
 }
 
+enum class WebLaunchMode {
+    EXTERNAL,
+    IN_APP,
+}
+
+enum class PermissionPolicy {
+    GRANT,
+    DENY,
+}
+
 data class ChildTile(
     val id: Long = 0,
     val type: TileType,
@@ -18,6 +28,17 @@ data class ChildTile(
     val target: String,
     val iconKey: String,
     val sortOrder: Int,
+    val webLaunchMode: WebLaunchMode = WebLaunchMode.EXTERNAL,
+    val cameraPolicy: PermissionPolicy = PermissionPolicy.GRANT,
+    val microphonePolicy: PermissionPolicy = PermissionPolicy.GRANT,
+    val locationPolicy: PermissionPolicy = PermissionPolicy.GRANT,
+)
+
+data class WebLinkConfig(
+    val webLaunchMode: WebLaunchMode = WebLaunchMode.IN_APP,
+    val cameraPolicy: PermissionPolicy = PermissionPolicy.GRANT,
+    val microphonePolicy: PermissionPolicy = PermissionPolicy.GRANT,
+    val locationPolicy: PermissionPolicy = PermissionPolicy.DENY,
 )
 
 data class InstalledApp(

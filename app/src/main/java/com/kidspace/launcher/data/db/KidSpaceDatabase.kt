@@ -5,7 +5,7 @@ import androidx.room.Database
 import androidx.room.Room
 import androidx.room.RoomDatabase
 
-@Database(entities = [ChildTileEntity::class], version = 1, exportSchema = false)
+@Database(entities = [ChildTileEntity::class], version = 2, exportSchema = false)
 abstract class KidSpaceDatabase : RoomDatabase() {
     abstract fun childTileDao(): ChildTileDao
 
@@ -19,7 +19,10 @@ abstract class KidSpaceDatabase : RoomDatabase() {
                     context.applicationContext,
                     KidSpaceDatabase::class.java,
                     "kidspace.db",
-                ).build().also { instance = it }
+                )
+                    .addMigrations(MIGRATION_1_2)
+                    .build()
+                    .also { instance = it }
             }
         }
     }

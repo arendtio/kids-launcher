@@ -8,6 +8,7 @@ import com.kidspace.launcher.data.model.AppearanceSettings
 import com.kidspace.launcher.data.model.ChildTile
 import com.kidspace.launcher.data.model.InstalledApp
 import com.kidspace.launcher.data.model.TileType
+import com.kidspace.launcher.data.model.WebLinkConfig
 import com.kidspace.launcher.data.repository.AppearanceRepository
 import com.kidspace.launcher.data.repository.AppRepository
 import com.kidspace.launcher.data.repository.BackupRepository
@@ -62,6 +63,9 @@ class LauncherViewModel(
 
     private val _backupStatus = MutableStateFlow(BackupStatus())
     val backupStatus: StateFlow<BackupStatus> = _backupStatus.asStateFlow()
+
+    private val _showChildAppearance = MutableStateFlow(false)
+    val showChildAppearance: StateFlow<Boolean> = _showChildAppearance.asStateFlow()
 
     fun requestParentAccess() {
         _parentGate.value = ParentGateUiState(challenge = ParentGateChallenge.generate())
@@ -131,7 +135,7 @@ class LauncherViewModel(
         }
     }
 
-    fun addLinkTile(label: String, url: String, type: TileType) {
+    fun addLinkTile(label: String, url: String, type: TileType, webConfig: WebLinkConfig) {
         viewModelScope.launch {
             val iconKey = IconKeyGenerator.forUrl(url)
             tileRepository.addTile(
@@ -141,6 +145,10 @@ class LauncherViewModel(
                     target = url,
                     iconKey = iconKey,
                     sortOrder = 0,
+                    webLaunchMode = webConfig.webLaunchMode,
+                    cameraPolicy = webConfig.cameraPolicy,
+                    microphonePolicy = webConfig.microphonePolicy,
+                    locationPolicy = webConfig.locationPolicy,
                 ),
             )
         }
@@ -205,6 +213,14 @@ class LauncherViewModel(
 
     fun dismissBackupStatus() {
         _backupStatus.value = BackupStatus()
+    }
+
+    fun openChildAppearance() {
+        _showChildAppearance.value = true
+    }
+
+    fun closeChildAppearance() {
+        _showChildAppearance.value = false
     }
 
     class Factory(
