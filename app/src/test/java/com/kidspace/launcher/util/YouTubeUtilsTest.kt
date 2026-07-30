@@ -42,16 +42,16 @@ class YouTubeUtilsTest {
     }
 
     @Test
-    fun `embedHtml includes loop playlist origin and referrer policy`() {
+    fun `playerHtml uses iframe api and returns home on end`() {
         val origin = "https://com.kidspace.launcher"
-        val html = YouTubeUtils.embedHtml("dQw4w9WgXcQ", origin)
-        assertTrue(html.contains("youtube.com/embed/dQw4w9WgXcQ"))
-        assertTrue(html.contains("loop=1"))
-        assertTrue(html.contains("playlist=dQw4w9WgXcQ"))
-        assertTrue(html.contains("rel=0"))
-        assertTrue(html.contains("origin=https%3A%2F%2Fcom.kidspace.launcher"))
-        assertTrue(html.contains("referrerpolicy=\"strict-origin-when-cross-origin\""))
-        assertTrue(html.contains("name=\"referrer\" content=\"strict-origin-when-cross-origin\""))
+        val html = YouTubeUtils.playerHtml("dQw4w9WgXcQ", origin)
+        assertTrue(html.contains("iframe_api"))
+        assertTrue(html.contains("onYouTubeIframeAPIReady"))
+        assertTrue(html.contains("videoId: 'dQw4w9WgXcQ'"))
+        assertTrue(html.contains("KidSpacePlayer.onVideoEnded()"))
+        assertTrue(html.contains("\"origin\": \"$origin\""))
+        assertFalse(html.contains("loop=1"))
+        assertFalse(html.contains("playlist="))
     }
 
     @Test
