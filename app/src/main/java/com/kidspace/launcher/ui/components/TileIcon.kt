@@ -65,8 +65,34 @@ fun TileIcon(
                 FallbackIcon(iconKey, iconModifier, size, tint)
             }
         }
+        iconKey.startsWith("youtube:") -> {
+            val url = IconKeyGenerator.youtubeThumbnailUrl(iconKey)
+            if (url == null) {
+                FallbackIcon(iconKey, iconModifier, size, tint)
+            } else {
+                SubcomposeAsyncImage(
+                    model = ImageRequest.Builder(LocalContext.current)
+                        .data(url)
+                        .crossfade(true)
+                        .build(),
+                    contentDescription = null,
+                    modifier = iconModifier.clip(shape),
+                    contentScale = ContentScale.Crop,
+                    loading = {
+                        FallbackIcon(iconKey, Modifier.fillMaxSize(), size, tint.copy(alpha = 0.5f))
+                    },
+                    error = {
+                        FallbackIcon(iconKey, Modifier.fillMaxSize(), size, tint)
+                    },
+                )
+            }
+        }
         iconKey.startsWith("favicon:") || iconKey.startsWith("http") -> {
-            val url = if (iconKey.startsWith("http")) iconKey else IconKeyGenerator.faviconUrl(target)
+            val url = if (iconKey.startsWith("http")) {
+                iconKey
+            } else {
+                IconKeyGenerator.faviconUrl(target)
+            }
             SubcomposeAsyncImage(
                 model = ImageRequest.Builder(LocalContext.current)
                     .data(url)

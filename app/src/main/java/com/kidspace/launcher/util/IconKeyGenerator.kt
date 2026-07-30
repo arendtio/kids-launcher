@@ -8,8 +8,14 @@ object IconKeyGenerator {
     fun forApp(packageName: String): String = "app:$packageName"
 
     fun forUrl(url: String): String {
+        YouTubeUtils.extractVideoId(url)?.let { return "youtube:$it" }
         val host = runCatching { URI(normalizeUrl(url)).host }.getOrNull()
         return if (host != null) "favicon:$host" else randomFor(url)
+    }
+
+    fun youtubeThumbnailUrl(iconKey: String): String? {
+        if (!iconKey.startsWith("youtube:")) return null
+        return YouTubeUtils.thumbnailUrl(iconKey.removePrefix("youtube:"))
     }
 
     fun randomFor(seed: String): String {
