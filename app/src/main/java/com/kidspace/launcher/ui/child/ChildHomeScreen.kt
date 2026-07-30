@@ -34,8 +34,8 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.kidspace.launcher.data.model.AppearanceSettings
 import com.kidspace.launcher.data.model.ChildTile
+import com.kidspace.launcher.ui.components.ChildBackground
 import com.kidspace.launcher.ui.components.TileIcon
-import com.kidspace.launcher.ui.theme.backgroundBrush
 import com.kidspace.launcher.ui.theme.toComposeColor
 
 @OptIn(ExperimentalFoundationApi::class)
@@ -51,11 +51,11 @@ fun ChildHomeScreen(
     val secondary = appearance.secondaryColor.toComposeColor()
     val accent = appearance.accentColor.toComposeColor()
 
-    Box(
-        modifier = modifier
-            .fillMaxSize()
-            .background(backgroundBrush(appearance)),
-    ) {
+    Box(modifier = modifier.fillMaxSize()) {
+        ChildBackground(
+            settings = appearance,
+            modifier = Modifier.fillMaxSize(),
+        )
         Column(
             modifier = Modifier
                 .fillMaxSize()
