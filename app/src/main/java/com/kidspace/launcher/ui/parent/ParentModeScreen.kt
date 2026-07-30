@@ -29,6 +29,7 @@ import androidx.compose.material.icons.filled.Palette
 import androidx.compose.material.icons.filled.Apps
 import androidx.compose.material.icons.filled.Dashboard
 import androidx.compose.material.icons.filled.Save
+import androidx.compose.material.icons.filled.VideoLibrary
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material3.AlertDialog
@@ -72,8 +73,9 @@ import com.kidspace.launcher.data.model.WebLaunchMode
 import com.kidspace.launcher.data.model.WebLinkConfig
 import com.kidspace.launcher.ui.components.TileIcon
 import com.kidspace.launcher.util.UrlValidator
+import com.kidspace.launcher.youtube.YouTubeSearchResult
 
-enum class ParentTab { TILES, APPS, APPEARANCE, BACKUP }
+enum class ParentTab { TILES, APPS, VIDEOS, APPEARANCE, BACKUP }
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -104,6 +106,20 @@ fun ParentModeScreen(
     onDownloadUpdate: () -> Unit,
     onInstallUpdate: () -> Unit,
     onDismissUpdateStatus: () -> Unit,
+    youtubeQuery: String,
+    isYouTubeSearching: Boolean,
+    youtubeResults: List<YouTubeSearchResult>,
+    selectedYouTubeVideoIds: Set<String>,
+    childYouTubeVideoIds: Set<String>,
+    youtubeSearchErrorMessage: String?,
+    youtubeSearchStatusMessage: String?,
+    onYouTubeQueryChange: (String) -> Unit,
+    onYouTubeSearch: () -> Unit,
+    onToggleYouTubeSelection: (String) -> Unit,
+    onSelectAllYouTubeResults: () -> Unit,
+    onClearYouTubeSelection: () -> Unit,
+    onAddSelectedYouTubeVideos: () -> Unit,
+    onDismissYouTubeSearchStatus: () -> Unit,
     modifier: Modifier = Modifier,
 ) {
     var selectedTab by remember { mutableIntStateOf(ParentTab.TILES.ordinal) }
@@ -139,6 +155,12 @@ fun ParentModeScreen(
                     onClick = { selectedTab = ParentTab.APPS.ordinal },
                     icon = { Icon(Icons.Default.Apps, null) },
                     label = { Text("Apps") },
+                )
+                NavigationBarItem(
+                    selected = selectedTab == ParentTab.VIDEOS.ordinal,
+                    onClick = { selectedTab = ParentTab.VIDEOS.ordinal },
+                    icon = { Icon(Icons.Default.VideoLibrary, null) },
+                    label = { Text("Videos") },
                 )
                 NavigationBarItem(
                     selected = selectedTab == ParentTab.APPEARANCE.ordinal,
@@ -181,6 +203,22 @@ fun ParentModeScreen(
                     onAdd = onAddApp,
                     onRemove = onRemoveApp,
                     onLaunch = onLaunchApp,
+                )
+                ParentTab.VIDEOS -> YouTubeSearchTab(
+                    query = youtubeQuery,
+                    isSearching = isYouTubeSearching,
+                    results = youtubeResults,
+                    selectedVideoIds = selectedYouTubeVideoIds,
+                    childYouTubeVideoIds = childYouTubeVideoIds,
+                    errorMessage = youtubeSearchErrorMessage,
+                    statusMessage = youtubeSearchStatusMessage,
+                    onQueryChange = onYouTubeQueryChange,
+                    onSearch = onYouTubeSearch,
+                    onToggleSelection = onToggleYouTubeSelection,
+                    onSelectAll = onSelectAllYouTubeResults,
+                    onClearSelection = onClearYouTubeSelection,
+                    onAddSelected = onAddSelectedYouTubeVideos,
+                    onDismissStatus = onDismissYouTubeSearchStatus,
                 )
                 ParentTab.APPEARANCE -> AppearanceTab(
                     settings = appearance,

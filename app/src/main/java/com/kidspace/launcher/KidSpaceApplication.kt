@@ -7,6 +7,7 @@ import com.kidspace.launcher.data.repository.AppRepository
 import com.kidspace.launcher.data.repository.BackupRepository
 import com.kidspace.launcher.data.repository.TileRepository
 import com.kidspace.launcher.update.AppUpdateRepository
+import com.kidspace.launcher.youtube.YouTubeSearchRepository
 
 class KidSpaceApplication : Application() {
     val database: KidSpaceDatabase by lazy { KidSpaceDatabase.getInstance(this) }
@@ -17,4 +18,5 @@ class KidSpaceApplication : Application() {
         BackupRepository(this, tileRepository, appearanceRepository)
     }
     val appUpdateRepository: AppUpdateRepository by lazy { AppUpdateRepository(this) }
+    val youtubeSearchRepository: YouTubeSearchRepository by lazy { YouTubeSearchRepository() }
 }

@@ -8,6 +8,7 @@ A child-friendly Android home launcher for use on a regular (adult) Android prof
 - **Parent mode** — Protected by an English number-word challenge (e.g. "three, seven, one" → enter `371`)
 - **App management** — Browse all installed apps and add them to the child surface
 - **Custom links** — Add websites and YouTube videos as tiles
+- **YouTube search** — Search YouTube in parent mode and add multiple videos at once (no API key needed)
 - **Customization** — Preset backgrounds, color themes, reorder and remove tiles
 - **Backup & restore** — Export/import all settings as JSON (parent area → Backup tab)
 - **Child My Look tile** — Children can pick backgrounds and colors from a permanent tile on the home grid
