@@ -106,7 +106,6 @@ fun ParentModeScreen(
     onDownloadUpdate: () -> Unit,
     onInstallUpdate: () -> Unit,
     onDismissUpdateStatus: () -> Unit,
-    youtubeApiKey: String,
     youtubeQuery: String,
     isYouTubeSearching: Boolean,
     youtubeResults: List<YouTubeSearchResult>,
@@ -114,8 +113,6 @@ fun ParentModeScreen(
     childYouTubeVideoIds: Set<String>,
     youtubeSearchErrorMessage: String?,
     youtubeSearchStatusMessage: String?,
-    onYouTubeApiKeyChange: (String) -> Unit,
-    onSaveYouTubeApiKey: () -> Unit,
     onYouTubeQueryChange: (String) -> Unit,
     onYouTubeSearch: () -> Unit,
     onToggleYouTubeSelection: (String) -> Unit,
@@ -208,7 +205,6 @@ fun ParentModeScreen(
                     onLaunch = onLaunchApp,
                 )
                 ParentTab.VIDEOS -> YouTubeSearchTab(
-                    apiKey = youtubeApiKey,
                     query = youtubeQuery,
                     isSearching = isYouTubeSearching,
                     results = youtubeResults,
@@ -216,8 +212,6 @@ fun ParentModeScreen(
                     childYouTubeVideoIds = childYouTubeVideoIds,
                     errorMessage = youtubeSearchErrorMessage,
                     statusMessage = youtubeSearchStatusMessage,
-                    onApiKeyChange = onYouTubeApiKeyChange,
-                    onSaveApiKey = onSaveYouTubeApiKey,
                     onQueryChange = onYouTubeQueryChange,
                     onSearch = onYouTubeSearch,
                     onToggleSelection = onToggleYouTubeSelection,

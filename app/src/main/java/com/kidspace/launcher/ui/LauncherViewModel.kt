@@ -17,7 +17,6 @@ import com.kidspace.launcher.domain.ParentGateChallenge
 import com.kidspace.launcher.update.AppUpdateRepository
 import com.kidspace.launcher.data.model.PermissionPolicy
 import com.kidspace.launcher.data.model.WebLaunchMode
-import com.kidspace.launcher.data.repository.YouTubeSettingsRepository
 import com.kidspace.launcher.util.IconKeyGenerator
 import com.kidspace.launcher.util.YouTubeUtils
 import com.kidspace.launcher.youtube.YouTubeSearchRepository
@@ -57,7 +56,6 @@ data class AppUpdateStatus(
 )
 
 data class YouTubeSearchUiState(
-    val apiKey: String = "",
     val query: String = "",
     val isSearching: Boolean = false,
     val results: List<YouTubeSearchResult> = emptyList(),
@@ -72,7 +70,6 @@ class LauncherViewModel(
     private val appearanceRepository: AppearanceRepository,
     private val backupRepository: BackupRepository,
     private val appUpdateRepository: AppUpdateRepository,
-    private val youtubeSettingsRepository: YouTubeSettingsRepository,
     private val youtubeSearchRepository: YouTubeSearchRepository,
 ) : ViewModel() {
 
@@ -114,13 +111,6 @@ class LauncherViewModel(
             ) { _, _ -> }
                 .first()
             _isLauncherReady.value = true
-        }
-        viewModelScope.launch {
-            youtubeSettingsRepository.observeApiKey().collect { savedKey ->
-                if (_youtubeSearch.value.apiKey.isEmpty()) {
-                    _youtubeSearch.value = _youtubeSearch.value.copy(apiKey = savedKey)
-                }
-            }
         }
     }
 
@@ -328,17 +318,6 @@ class LauncherViewModel(
         _updateStatus.value = AppUpdateStatus()
     }
 
-    fun updateYouTubeApiKey(apiKey: String) {
-        _youtubeSearch.value = _youtubeSearch.value.copy(apiKey = apiKey, errorMessage = null)
-    }
-
-    fun saveYouTubeApiKey() {
-        viewModelScope.launch {
-            youtubeSettingsRepository.saveApiKey(_youtubeSearch.value.apiKey)
-            _youtubeSearch.value = _youtubeSearch.value.copy(statusMessage = "API key saved.")
-        }
-    }
-
     fun updateYouTubeQuery(query: String) {
         _youtubeSearch.value = _youtubeSearch.value.copy(query = query, errorMessage = null)
     }
@@ -351,9 +330,7 @@ class LauncherViewModel(
                 errorMessage = null,
                 statusMessage = null,
             )
-            val apiKey = youtubeSettingsRepository.effectiveApiKey()
-                .ifBlank { _youtubeSearch.value.apiKey.trim() }
-            runCatching { youtubeSearchRepository.search(query, apiKey) }
+            runCatching { youtubeSearchRepository.search(query) }
                 .onSuccess { results ->
                     _youtubeSearch.value = _youtubeSearch.value.copy(
                         isSearching = false,
@@ -461,7 +438,6 @@ class LauncherViewModel(
         private val appearanceRepository: AppearanceRepository,
         private val backupRepository: BackupRepository,
         private val appUpdateRepository: AppUpdateRepository,
-        private val youtubeSettingsRepository: YouTubeSettingsRepository,
         private val youtubeSearchRepository: YouTubeSearchRepository,
     ) : ViewModelProvider.Factory {
         @Suppress("UNCHECKED_CAST")
@@ -472,7 +448,6 @@ class LauncherViewModel(
                 appearanceRepository,
                 backupRepository,
                 appUpdateRepository,
-                youtubeSettingsRepository,
                 youtubeSearchRepository,
             ) as T
         }

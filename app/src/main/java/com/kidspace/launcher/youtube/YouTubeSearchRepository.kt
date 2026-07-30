@@ -1,74 +1,73 @@
 package com.kidspace.launcher.youtube
 
 import java.net.HttpURLConnection
-import java.net.URLEncoder
 import java.net.URL
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.withContext
+import org.json.JSONObject
 
 class YouTubeSearchRepository {
     suspend fun search(
         query: String,
-        apiKey: String,
         maxResults: Int = 25,
     ): List<YouTubeSearchResult> = withContext(Dispatchers.IO) {
         require(query.isNotBlank()) { "Search query is required" }
-        require(apiKey.isNotBlank()) { "YouTube API key is required" }
-
-        val encodedQuery = URLEncoder.encode(query.trim(), Charsets.UTF_8.name())
-        val searchUrl =
-            "https://www.googleapis.com/youtube/v3/search" +
-                "?part=snippet&type=video&safeSearch=strict&maxResults=$maxResults" +
-                "&q=$encodedQuery&key=$apiKey"
-
-        val searchJson = fetchJson(searchUrl)
-        val searchItems = YouTubeSearchResponseParser.parseSearchItems(searchJson)
-        if (searchItems.isEmpty()) return@withContext emptyList()
-
-        val durations = fetchDurations(searchItems.map { it.videoId }, apiKey)
-        searchItems.map { item ->
-            YouTubeSearchResult(
-                videoId = item.videoId,
-                title = item.title,
-                thumbnailUrl = item.thumbnailUrl,
-                durationLabel = durations[item.videoId] ?: "--:--",
-            )
-        }
+        val json = postInnertubeSearch(query.trim())
+        YouTubeSearchResponseParser.parseInnertubeSearch(json, maxResults)
     }
 
-    private fun fetchDurations(videoIds: List<String>, apiKey: String): Map<String, String> {
-        if (videoIds.isEmpty()) return emptyMap()
-        val joinedIds = videoIds.joinToString(",")
-        val url =
-            "https://www.googleapis.com/youtube/v3/videos" +
-                "?part=contentDetails&id=$joinedIds&key=$apiKey"
-        val json = fetchJson(url)
-        return YouTubeSearchResponseParser.parseDurations(json)
-    }
-
-    private fun fetchJson(url: String): String {
-        val connection = (URL(url).openConnection() as HttpURLConnection).apply {
+    private fun postInnertubeSearch(query: String): String {
+        val connection = (URL(INNERTUBE_SEARCH_URL).openConnection() as HttpURLConnection).apply {
+            requestMethod = "POST"
             connectTimeout = 20_000
             readTimeout = 20_000
-            requestMethod = "GET"
+            doOutput = true
+            setRequestProperty("Content-Type", "application/json; charset=UTF-8")
+            setRequestProperty(
+                "User-Agent",
+                "Mozilla/5.0 (Linux; Android 10) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/121.0.0.0 Mobile Safari/537.36",
+            )
         }
+
+        val payload = JSONObject().apply {
+            put(
+                "context",
+                JSONObject().apply {
+                    put(
+                        "client",
+                        JSONObject().apply {
+                            put("clientName", "WEB")
+                            put("clientVersion", CLIENT_VERSION)
+                            put("hl", "en")
+                            put("gl", "US")
+                        },
+                    )
+                },
+            )
+            put("query", query)
+        }.toString()
+
         return try {
-            val responseCode = connection.responseCode
-            val stream = if (responseCode in 200..299) {
-                connection.inputStream
-            } else {
-                connection.errorStream
+            connection.outputStream.use { stream ->
+                stream.write(payload.toByteArray(Charsets.UTF_8))
             }
-            val body = stream?.bufferedReader()?.use { it.readText() }.orEmpty()
+            val responseCode = connection.responseCode
+            val body = (if (responseCode in 200..299) connection.inputStream else connection.errorStream)
+                ?.bufferedReader()
+                ?.use { it.readText() }
+                .orEmpty()
             if (responseCode !in 200..299) {
-                val message = runCatching {
-                    org.json.JSONObject(body).optJSONObject("error")?.optString("message")
-                }.getOrNull()
-                error(message ?: "YouTube API request failed with HTTP $responseCode")
+                error("YouTube search failed with HTTP $responseCode")
             }
             body
         } finally {
             connection.disconnect()
         }
+    }
+
+    companion object {
+        private const val INNERTUBE_SEARCH_URL =
+            "https://www.youtube.com/youtubei/v1/search?prettyPrint=false"
+        private const val CLIENT_VERSION = "2.20240101.00.00"
     }
 }
