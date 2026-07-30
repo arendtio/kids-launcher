@@ -23,7 +23,6 @@ import androidx.compose.material3.CardDefaults
 import androidx.compose.material3.Checkbox
 import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.Icon
-import androidx.compose.material3.OutlinedButton
 import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
@@ -42,7 +41,6 @@ import com.kidspace.launcher.youtube.YouTubeSearchResult
 
 @Composable
 fun YouTubeSearchTab(
-    apiKey: String,
     query: String,
     isSearching: Boolean,
     results: List<YouTubeSearchResult>,
@@ -50,8 +48,6 @@ fun YouTubeSearchTab(
     childYouTubeVideoIds: Set<String>,
     errorMessage: String?,
     statusMessage: String?,
-    onApiKeyChange: (String) -> Unit,
-    onSaveApiKey: () -> Unit,
     onQueryChange: (String) -> Unit,
     onSearch: () -> Unit,
     onToggleSelection: (String) -> Unit,
@@ -70,39 +66,10 @@ fun YouTubeSearchTab(
             Text("YouTube Search", fontWeight = FontWeight.Bold, fontSize = 18.sp)
             Spacer(modifier = Modifier.height(8.dp))
             Text(
-                "Search YouTube, select videos, and add them to the child screen in one go.",
+                "Search YouTube like the website, select videos, and add them to the child screen in one go. No API key needed.",
                 fontSize = 14.sp,
                 color = Color.Gray,
             )
-        }
-
-        item {
-            Card(
-                colors = CardDefaults.cardColors(containerColor = Color.White),
-                elevation = CardDefaults.cardElevation(2.dp),
-            ) {
-                Column(modifier = Modifier.padding(16.dp)) {
-                    Text("YouTube API key", fontWeight = FontWeight.SemiBold)
-                    Spacer(modifier = Modifier.height(8.dp))
-                    Text(
-                        "Create a free key in Google Cloud with YouTube Data API v3 enabled.",
-                        fontSize = 12.sp,
-                        color = Color.Gray,
-                    )
-                    Spacer(modifier = Modifier.height(8.dp))
-                    OutlinedTextField(
-                        value = apiKey,
-                        onValueChange = onApiKeyChange,
-                        modifier = Modifier.fillMaxWidth(),
-                        label = { Text("API key") },
-                        singleLine = true,
-                    )
-                    Spacer(modifier = Modifier.height(8.dp))
-                    OutlinedButton(onClick = onSaveApiKey, modifier = Modifier.fillMaxWidth()) {
-                        Text("Save API key")
-                    }
-                }
-            }
         }
 
         item {

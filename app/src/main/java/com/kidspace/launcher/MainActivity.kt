@@ -41,7 +41,6 @@ class MainActivity : ComponentActivity() {
                     app.appearanceRepository,
                     app.backupRepository,
                     app.appUpdateRepository,
-                    app.youtubeSettingsRepository,
                     app.youtubeSearchRepository,
                 ),
             )
@@ -135,7 +134,6 @@ class MainActivity : ComponentActivity() {
                                 }
                             },
                             onDismissUpdateStatus = viewModel::dismissUpdateStatus,
-                            youtubeApiKey = youtubeSearch.apiKey,
                             youtubeQuery = youtubeSearch.query,
                             isYouTubeSearching = youtubeSearch.isSearching,
                             youtubeResults = youtubeSearch.results,
@@ -143,8 +141,6 @@ class MainActivity : ComponentActivity() {
                             childYouTubeVideoIds = childYouTubeVideoIds,
                             youtubeSearchErrorMessage = youtubeSearch.errorMessage,
                             youtubeSearchStatusMessage = youtubeSearch.statusMessage,
-                            onYouTubeApiKeyChange = viewModel::updateYouTubeApiKey,
-                            onSaveYouTubeApiKey = viewModel::saveYouTubeApiKey,
                             onYouTubeQueryChange = viewModel::updateYouTubeQuery,
                             onYouTubeSearch = viewModel::searchYouTubeVideos,
                             onToggleYouTubeSelection = viewModel::toggleYouTubeSelection,

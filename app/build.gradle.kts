@@ -5,15 +5,6 @@ plugins {
     id("com.google.devtools.ksp")
 }
 
-import java.util.Properties
-
-val localProperties = Properties().apply {
-    val file = rootProject.file("local.properties")
-    if (file.exists()) {
-        file.inputStream().use { load(it) }
-    }
-}
-
 android {
     namespace = "com.kidspace.launcher"
     compileSdk = 34
@@ -25,11 +16,6 @@ android {
         versionCode = 1
         versionName = "1.0.0"
         testInstrumentationRunner = "androidx.test.runner.AndroidJUnitRunner"
-        buildConfigField(
-            "String",
-            "YOUTUBE_API_KEY",
-            "\"${localProperties.getProperty("youtube.api.key", "")}\"",
-        )
     }
 
     buildTypes {
