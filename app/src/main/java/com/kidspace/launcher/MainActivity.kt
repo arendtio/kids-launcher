@@ -4,6 +4,7 @@ import android.os.Bundle
 import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
 import androidx.activity.enableEdgeToEdge
+import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Surface
@@ -16,6 +17,7 @@ import androidx.lifecycle.viewmodel.compose.viewModel
 import com.kidspace.launcher.domain.LauncherActions
 import com.kidspace.launcher.ui.AppScreen
 import com.kidspace.launcher.ui.LauncherViewModel
+import com.kidspace.launcher.ui.child.ChildAppearanceScreen
 import com.kidspace.launcher.ui.child.ChildHomeScreen
 import com.kidspace.launcher.ui.parent.ParentGateScreen
 import com.kidspace.launcher.ui.parent.ParentModeScreen
@@ -44,6 +46,7 @@ class MainActivity : ComponentActivity() {
             val parentGate by viewModel.parentGate.collectAsState()
             val installedApps by viewModel.installedApps.collectAsState()
             val backupStatus by viewModel.backupStatus.collectAsState()
+            val showChildAppearance by viewModel.showChildAppearance.collectAsState()
 
             val colorScheme = lightColorScheme(
                 primary = appearance.primaryColor.toComposeColor(),
@@ -55,14 +58,24 @@ class MainActivity : ComponentActivity() {
             MaterialTheme(colorScheme = colorScheme) {
                 Surface(modifier = Modifier.fillMaxSize()) {
                     when (screen) {
-                        AppScreen.CHILD -> ChildHomeScreen(
-                            tiles = tiles,
-                            appearance = appearance,
-                            onTileClick = { tile ->
-                                LauncherActions.launchTile(this, tile.type, tile.target)
-                            },
-                            onParentAccessRequest = viewModel::requestParentAccess,
-                        )
+                        AppScreen.CHILD -> Box(Modifier.fillMaxSize()) {
+                            ChildHomeScreen(
+                                tiles = tiles,
+                                appearance = appearance,
+                                onTileClick = { tile ->
+                                    LauncherActions.launchTile(this@MainActivity, tile)
+                                },
+                                onAppearanceTileClick = viewModel::openChildAppearance,
+                                onParentAccessRequest = viewModel::requestParentAccess,
+                            )
+                            if (showChildAppearance) {
+                                ChildAppearanceScreen(
+                                    settings = appearance,
+                                    onSave = viewModel::saveAppearance,
+                                    onClose = viewModel::closeChildAppearance,
+                                )
+                            }
+                        }
                         AppScreen.PARENT_GATE -> ParentGateScreen(
                             challenge = parentGate.challenge,
                             enteredDigits = parentGate.enteredDigits,

@@ -3,7 +3,9 @@ package com.kidspace.launcher.domain
 import com.kidspace.launcher.data.model.AppearanceSettings
 import com.kidspace.launcher.data.model.BackgroundType
 import com.kidspace.launcher.data.model.ChildTile
+import com.kidspace.launcher.data.model.PermissionPolicy
 import com.kidspace.launcher.data.model.TileType
+import com.kidspace.launcher.data.model.WebLaunchMode
 import org.json.JSONArray
 import org.json.JSONObject
 import java.time.Instant
@@ -17,7 +19,7 @@ data class KidSpaceBackup(
     val customBackgroundMimeType: String? = null,
 ) {
     companion object {
-        const val CURRENT_VERSION = 1
+        const val CURRENT_VERSION = 2
     }
 }
 
@@ -35,7 +37,11 @@ object BackupCodec {
                     .put("label", tile.label)
                     .put("target", tile.target)
                     .put("iconKey", tile.iconKey)
-                    .put("sortOrder", tile.sortOrder),
+                    .put("sortOrder", tile.sortOrder)
+                    .put("webLaunchMode", tile.webLaunchMode.name)
+                    .put("cameraPolicy", tile.cameraPolicy.name)
+                    .put("microphonePolicy", tile.microphonePolicy.name)
+                    .put("locationPolicy", tile.locationPolicy.name),
             )
         }
         root.put("tiles", tilesArray)
@@ -63,7 +69,7 @@ object BackupCodec {
     fun decode(json: String): KidSpaceBackup {
         val root = JSONObject(json)
         val version = root.getInt("version")
-        require(version == KidSpaceBackup.CURRENT_VERSION) {
+        require(version in 1..KidSpaceBackup.CURRENT_VERSION) {
             "Unsupported backup version: $version"
         }
 
@@ -78,6 +84,14 @@ object BackupCodec {
                         target = item.getString("target"),
                         iconKey = item.getString("iconKey"),
                         sortOrder = item.getInt("sortOrder"),
+                        webLaunchMode = item.optString("webLaunchMode", WebLaunchMode.EXTERNAL.name)
+                            .let(WebLaunchMode::valueOf),
+                        cameraPolicy = item.optString("cameraPolicy", PermissionPolicy.GRANT.name)
+                            .let(PermissionPolicy::valueOf),
+                        microphonePolicy = item.optString("microphonePolicy", PermissionPolicy.GRANT.name)
+                            .let(PermissionPolicy::valueOf),
+                        locationPolicy = item.optString("locationPolicy", PermissionPolicy.GRANT.name)
+                            .let(PermissionPolicy::valueOf),
                     ),
                 )
             }

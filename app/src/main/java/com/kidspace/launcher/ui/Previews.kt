@@ -19,6 +19,7 @@ private fun PreviewChildHome() {
         ),
         appearance = AppearanceSettings(),
         onTileClick = {},
+        onAppearanceTileClick = {},
         onParentAccessRequest = {},
     )
 }

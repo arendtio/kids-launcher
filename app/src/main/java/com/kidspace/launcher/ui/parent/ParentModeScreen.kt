@@ -27,7 +27,10 @@ import androidx.compose.material.icons.filled.Palette
 import androidx.compose.material.icons.filled.Apps
 import androidx.compose.material.icons.filled.Dashboard
 import androidx.compose.material.icons.filled.Save
+import androidx.compose.foundation.rememberScrollState
+import androidx.compose.foundation.verticalScroll
 import androidx.compose.material3.AlertDialog
+import androidx.compose.material3.Switch
 import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
 import androidx.compose.material3.ExperimentalMaterial3Api
@@ -61,7 +64,10 @@ import androidx.compose.ui.unit.sp
 import com.kidspace.launcher.data.model.AppearanceSettings
 import com.kidspace.launcher.data.model.ChildTile
 import com.kidspace.launcher.data.model.InstalledApp
+import com.kidspace.launcher.data.model.PermissionPolicy
 import com.kidspace.launcher.data.model.TileType
+import com.kidspace.launcher.data.model.WebLaunchMode
+import com.kidspace.launcher.data.model.WebLinkConfig
 import com.kidspace.launcher.ui.components.TileIcon
 import com.kidspace.launcher.util.UrlValidator
 
@@ -75,7 +81,7 @@ fun ParentModeScreen(
     appearance: AppearanceSettings,
     onExitParentMode: () -> Unit,
     onAddApp: (InstalledApp) -> Unit,
-    onAddLink: (label: String, url: String, type: TileType) -> Unit,
+    onAddLink: (label: String, url: String, type: TileType, webConfig: WebLinkConfig) -> Unit,
     onRemoveTile: (Long) -> Unit,
     onMoveTile: (Long, Int) -> Unit,
     onSaveAppearance: (AppearanceSettings) -> Unit,
@@ -180,8 +186,8 @@ fun ParentModeScreen(
     if (showAddLinkDialog) {
         AddLinkDialog(
             onDismiss = { showAddLinkDialog = false },
-            onConfirm = { label, url, type ->
-                onAddLink(label, url, type)
+            onConfirm = { label, url, type, webConfig ->
+                onAddLink(label, url, type, webConfig)
                 showAddLinkDialog = false
             },
         )
@@ -304,18 +310,22 @@ private fun AppsTab(
 @Composable
 private fun AddLinkDialog(
     onDismiss: () -> Unit,
-    onConfirm: (label: String, url: String, type: TileType) -> Unit,
+    onConfirm: (label: String, url: String, type: TileType, webConfig: WebLinkConfig) -> Unit,
 ) {
     var label by remember { mutableStateOf("") }
     var url by remember { mutableStateOf("") }
     var linkType by remember { mutableIntStateOf(0) }
+    var useInAppBrowser by remember { mutableStateOf(true) }
+    var grantCamera by remember { mutableStateOf(true) }
+    var grantMicrophone by remember { mutableStateOf(true) }
+    var grantLocation by remember { mutableStateOf(false) }
     var error by remember { mutableStateOf<String?>(null) }
 
     AlertDialog(
         onDismissRequest = onDismiss,
         title = { Text("Add Link") },
         text = {
-            Column {
+            Column(modifier = Modifier.verticalScroll(rememberScrollState())) {
                 TabRow(selectedTabIndex = linkType) {
                     Tab(selected = linkType == 0, onClick = { linkType = 0 }, text = { Text("Website") })
                     Tab(selected = linkType == 1, onClick = { linkType = 1 }, text = { Text("YouTube") })
@@ -336,6 +346,25 @@ private fun AddLinkDialog(
                     modifier = Modifier.fillMaxWidth(),
                     singleLine = true,
                 )
+                Spacer(modifier = Modifier.height(16.dp))
+                Text("Browser", fontWeight = FontWeight.SemiBold)
+                PermissionToggleRow(
+                    label = "Open in KidSpace browser (no address bar)",
+                    checked = useInAppBrowser,
+                    onCheckedChange = { useInAppBrowser = it },
+                )
+                if (useInAppBrowser) {
+                    Spacer(modifier = Modifier.height(8.dp))
+                    Text("Site permissions", fontWeight = FontWeight.SemiBold, fontSize = 14.sp)
+                    Text(
+                        "Applies to this link and other pages on the same domain.",
+                        fontSize = 12.sp,
+                        color = Color.Gray,
+                    )
+                    PermissionToggleRow("Auto-allow camera", grantCamera) { grantCamera = it }
+                    PermissionToggleRow("Auto-allow microphone", grantMicrophone) { grantMicrophone = it }
+                    PermissionToggleRow("Auto-allow location", grantLocation) { grantLocation = it }
+                }
                 if (error != null) {
                     Text(error!!, color = Color.Red, fontSize = 12.sp)
                 }
@@ -356,7 +385,13 @@ private fun AddLinkDialog(
                 } else {
                     TileType.WEBSITE
                 }
-                onConfirm(label.trim(), url.trim(), type)
+                val webConfig = WebLinkConfig(
+                    webLaunchMode = if (useInAppBrowser) WebLaunchMode.IN_APP else WebLaunchMode.EXTERNAL,
+                    cameraPolicy = if (grantCamera) PermissionPolicy.GRANT else PermissionPolicy.DENY,
+                    microphonePolicy = if (grantMicrophone) PermissionPolicy.GRANT else PermissionPolicy.DENY,
+                    locationPolicy = if (grantLocation) PermissionPolicy.GRANT else PermissionPolicy.DENY,
+                )
+                onConfirm(label.trim(), url.trim(), type, webConfig)
             }) {
                 Text("Add")
             }
@@ -365,4 +400,21 @@ private fun AddLinkDialog(
             TextButton(onClick = onDismiss) { Text("Cancel") }
         },
     )
+}
+
+@Composable
+private fun PermissionToggleRow(
+    label: String,
+    checked: Boolean,
+    onCheckedChange: (Boolean) -> Unit,
+) {
+    Row(
+        modifier = Modifier
+            .fillMaxWidth()
+            .padding(vertical = 4.dp),
+        verticalAlignment = Alignment.CenterVertically,
+    ) {
+        Text(label, modifier = Modifier.weight(1f), fontSize = 14.sp)
+        Switch(checked = checked, onCheckedChange = onCheckedChange)
+    }
 }
