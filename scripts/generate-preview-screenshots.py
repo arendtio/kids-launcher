@@ -10,6 +10,10 @@ OUT.mkdir(parents=True, exist_ok=True)
 
 W, H = 1080, 2400
 
+PRIMARY = (79, 154, 216)
+SECONDARY = (126, 200, 227)
+ACCENT = (255, 171, 118)
+
 
 def gradient(draw, y0, y1, c1, c2):
     for y in range(y0, y1):
@@ -35,28 +39,53 @@ def rounded_rect(draw, xy, radius, fill, outline=None, width=0):
     draw.rounded_rectangle(xy, radius=radius, fill=fill, outline=outline, width=width)
 
 
+def draw_sky_meadow_scene(draw):
+    gradient(draw, 0, H, (184, 228, 255), (200, 240, 212))
+    draw.ellipse((W - 220, 100, W - 60, 260), fill=ACCENT)
+    draw.ellipse((120, 180, 280, 260), fill=(255, 255, 255))
+    draw.ellipse((170, 160, 330, 250), fill=(255, 255, 255))
+    draw.ellipse((230, 175, 380, 255), fill=(255, 255, 255))
+    draw.pieslice((-80, H - 520, W + 80, H + 120), 180, 360, fill=(129, 199, 132))
+    draw.pieslice((120, H - 460, W + 120, H + 180), 180, 360, fill=(102, 187, 106))
+
+
+def draw_tile(draw, x, y, size, label, icon_color, glyph):
+    rounded_rect(draw, (x, y, x + size, y + size), 24, (255, 255, 255, 242))
+    pad = 10
+    rounded_rect(draw, (x + pad, y + pad, x + size - pad, y + size - pad - 34), 18, icon_color)
+    draw.text((x + size // 2, y + (size - 34) // 2 + pad), glyph, fill="white", font=font(int(size * 0.28), True), anchor="mm")
+    draw.text((x + size // 2, y + size - 18), label, fill=PRIMARY, font=font(20, True), anchor="mm")
+
+
 def child_home():
     img = Image.new("RGB", (W, H), "#C8F0D4")
     draw = ImageDraw.Draw(img)
-    gradient(draw, 0, H, (184, 228, 255), (200, 240, 212))
+    draw_sky_meadow_scene(draw)
 
-    rounded_rect(draw, (60, 120, W - 60, 340), 56, (79, 154, 216, 230))
-    draw.text((W // 2, 190), "✨ KidSpace ✨", fill="white", font=font(56, True), anchor="mm")
-    draw.text((W // 2, 270), "Tap your favorites below!", fill=(126, 200, 227), font=font(32), anchor="mm")
+    rounded_rect(draw, (50, 110, W - 50, 390), 48, PRIMARY)
+    draw.text((W // 2, 175), "✨ KidSpace ✨", fill="white", font=font(52, True), anchor="mm")
+    draw.text((W // 2, 245), "Tap your favorites below!", fill="white", font=font(28), anchor="mm")
+    draw.text((W // 2, 310), "Parents: long-press here for parent mode", fill=SECONDARY, font=font(24), anchor="mm")
 
     tiles = [
-        ("YouTube Kids", (255, 171, 118), "▶"),
-        ("PBS Kids", (79, 154, 216), "P"),
-        ("Khan Academy", (126, 200, 227), "K"),
-        ("Story Time", (255, 171, 118), "📖"),
+        ("YouTube", ACCENT, "▶"),
+        ("PBS Kids", PRIMARY, "P"),
+        ("Khan", SECONDARY, "K"),
+        ("Stories", ACCENT, "📖"),
+        ("Duolingo", PRIMARY, "D"),
+        ("Lego", SECONDARY, "L"),
+        ("Peppa", ACCENT, "🐷"),
+        ("CBeebies", PRIMARY, "C"),
     ]
-    positions = [(60, 400), (W // 2 + 20, 400), (60, 920), (W // 2 + 20, 920)]
-    for i, (label, accent, glyph) in enumerate(tiles):
-        x, y = positions[i]
-        rounded_rect(draw, (x, y, x + 460, y + 460), 56, (255, 255, 255))
-        rounded_rect(draw, (x + 70, y + 50, x + 390, y + 290), 40, accent)
-        draw.text((x + 230, y + 170), glyph, fill="white", font=font(72, True), anchor="mm")
-        draw.text((x + 230, y + 360), label, fill=(79, 154, 216), font=font(34, True), anchor="mm")
+
+    cols, gap, margin_x, start_y = 4, 18, 50, 430
+    tile_size = (W - margin_x * 2 - gap * (cols - 1)) // cols
+    for i, (label, color, glyph) in enumerate(tiles):
+        col = i % cols
+        row = i // cols
+        x = margin_x + col * (tile_size + gap)
+        y = start_y + row * (tile_size + gap)
+        draw_tile(draw, x, y, tile_size, label, color, glyph)
 
     img.save(OUT / "01-child-home.png")
 
@@ -103,8 +132,8 @@ def parent_mode():
     y = 220
     for label in items:
         rounded_rect(draw, (40, y, W - 40, y + 120), 32, "white")
-        rounded_rect(draw, (60, y + 20, 140, y + 100), 20, (107, 157, 255))
-        draw.text((90, y + 60), label[0], fill="white", font=font(36, True), anchor="mm")
+        rounded_rect(draw, (60, y + 20, 140, y + 100), 20, PRIMARY)
+        draw.text((100, y + 60), label[0], fill="white", font=font(36, True), anchor="mm")
         draw.text((170, y + 60), label, fill="#333333", font=font(32), anchor="lm")
         y += 140
 
@@ -118,8 +147,45 @@ def parent_mode():
     img.save(OUT / "03-parent-mode.png")
 
 
+def appearance_tab():
+    img = Image.new("RGB", (W, H), "#F5F5F5")
+    draw = ImageDraw.Draw(img)
+    draw.rectangle((0, 0, W, 180), fill=(57, 73, 171))
+    draw.text((60, 90), "Parent Mode", fill="white", font=font(44, True), anchor="lm")
+
+    draw.text((50, 220), "Your Photo", fill="#222222", font=font(34, True), anchor="lm")
+    draw.text((50, 270), "Upload a JPEG or PNG from your device", fill="#777777", font=font(24), anchor="lm")
+    rounded_rect(draw, (50, 320, 500, 400), 20, "white", outline=PRIMARY, width=3)
+    draw.text((275, 360), "📷  Choose photo", fill=PRIMARY, font=font(28), anchor="mm")
+
+    draw.text((50, 450), "Illustrated Backgrounds", fill="#222222", font=font(34, True), anchor="lm")
+    presets = [
+        ("Sky Meadow", (184, 228, 255), (200, 240, 212)),
+        ("Ocean Bubbles", (129, 212, 250), (77, 182, 172)),
+        ("Candy Clouds", (248, 187, 217), (209, 196, 233)),
+    ]
+    y = 510
+    for i, (name, c1, c2) in enumerate(presets):
+        rounded_rect(draw, (50, y, W - 50, y + 100), 24, "white", outline=PRIMARY if i == 0 else None, width=4 if i == 0 else 0)
+        rounded_rect(draw, (70, y + 20, 150, y + 80), 16, c2)
+        draw.rectangle((75, y + 25, 145, y + 75), fill=c1)
+        draw.text((180, y + 50), name, fill="#333333", font=font(30), anchor="lm")
+        draw.text((180, y + 78), "Recolorable vector scene", fill="#999999", font=font(20), anchor="lm")
+        y += 120
+
+    draw.rectangle((0, H - 160, W, H), fill="white")
+    tabs = [("Tiles", False), ("Apps", False), ("Look", True)]
+    for i, (name, active) in enumerate(tabs):
+        x = 120 + i * 300
+        color = (57, 73, 171) if active else (150, 150, 150)
+        draw.text((x, H - 90), name, fill=color, font=font(30, active), anchor="mm")
+
+    img.save(OUT / "04-appearance.png")
+
+
 if __name__ == "__main__":
     child_home()
     parent_gate()
     parent_mode()
+    appearance_tab()
     print(f"Wrote previews to {OUT}")
