@@ -12,7 +12,7 @@ As a child using the device, I want a colorful home screen with big picture butt
 - [ ] Tapping an **app** tile launches that application
 - [ ] Tapping a **website** tile opens the URL in the default browser
 - [ ] Tapping a **YouTube** tile opens the video in a focused embedded player (in-app) or external browser (parent choice)
-- [ ] In-app YouTube playback uses a full-screen embed player that loops the same video instead of auto-advancing
+- [ ] In-app YouTube playback uses a full-screen embed player that returns to the child home screen when the video ends
 - [ ] YouTube tiles show the **video thumbnail** as their tile icon
 - [ ] Background image and theme colors are applied to the child surface
 - [ ] Empty state is friendly when no tiles are configured
