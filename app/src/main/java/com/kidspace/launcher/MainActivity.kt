@@ -34,6 +34,7 @@ class MainActivity : ComponentActivity() {
                     app.tileRepository,
                     app.appRepository,
                     app.appearanceRepository,
+                    app.backupRepository,
                 ),
             )
 
@@ -42,6 +43,7 @@ class MainActivity : ComponentActivity() {
             val appearance by viewModel.appearance.collectAsState()
             val parentGate by viewModel.parentGate.collectAsState()
             val installedApps by viewModel.installedApps.collectAsState()
+            val backupStatus by viewModel.backupStatus.collectAsState()
 
             val colorScheme = lightColorScheme(
                 primary = appearance.primaryColor.toComposeColor(),
@@ -80,6 +82,13 @@ class MainActivity : ComponentActivity() {
                             onRemoveTile = viewModel::removeTile,
                             onMoveTile = viewModel::moveTile,
                             onSaveAppearance = viewModel::saveAppearance,
+                            onImportCustomBackground = viewModel::importCustomBackground,
+                            onClearCustomBackground = viewModel::clearCustomBackground,
+                            onExportBackup = viewModel::exportBackup,
+                            onImportBackup = viewModel::importBackup,
+                            backupStatusMessage = backupStatus.message,
+                            backupStatusIsError = backupStatus.isError,
+                            onDismissBackupStatus = viewModel::dismissBackupStatus,
                         )
                     }
                 }

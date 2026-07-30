@@ -3,12 +3,14 @@ package com.kidspace.launcher.ui
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.ViewModelProvider
 import androidx.lifecycle.viewModelScope
+import android.net.Uri
 import com.kidspace.launcher.data.model.AppearanceSettings
 import com.kidspace.launcher.data.model.ChildTile
 import com.kidspace.launcher.data.model.InstalledApp
 import com.kidspace.launcher.data.model.TileType
 import com.kidspace.launcher.data.repository.AppearanceRepository
 import com.kidspace.launcher.data.repository.AppRepository
+import com.kidspace.launcher.data.repository.BackupRepository
 import com.kidspace.launcher.data.repository.TileRepository
 import com.kidspace.launcher.domain.ParentGateChallenge
 import com.kidspace.launcher.util.IconKeyGenerator
@@ -31,10 +33,16 @@ data class ParentGateUiState(
     val errorMessage: String? = null,
 )
 
+data class BackupStatus(
+    val message: String? = null,
+    val isError: Boolean = false,
+)
+
 class LauncherViewModel(
     private val tileRepository: TileRepository,
     private val appRepository: AppRepository,
     private val appearanceRepository: AppearanceRepository,
+    private val backupRepository: BackupRepository,
 ) : ViewModel() {
 
     val tiles: StateFlow<List<ChildTile>> = tileRepository.observeTiles()
@@ -51,6 +59,9 @@ class LauncherViewModel(
 
     private val _installedApps = MutableStateFlow<List<InstalledApp>>(emptyList())
     val installedApps: StateFlow<List<InstalledApp>> = _installedApps.asStateFlow()
+
+    private val _backupStatus = MutableStateFlow(BackupStatus())
+    val backupStatus: StateFlow<BackupStatus> = _backupStatus.asStateFlow()
 
     fun requestParentAccess() {
         _parentGate.value = ParentGateUiState(challenge = ParentGateChallenge.generate())
@@ -154,14 +165,62 @@ class LauncherViewModel(
         viewModelScope.launch { appearanceRepository.saveSettings(settings) }
     }
 
+    fun importCustomBackground(uri: Uri) {
+        viewModelScope.launch { appearanceRepository.importCustomBackground(uri) }
+    }
+
+    fun clearCustomBackground() {
+        viewModelScope.launch { appearanceRepository.clearCustomBackground() }
+    }
+
+    fun exportBackup(uri: Uri) {
+        viewModelScope.launch {
+            runCatching { backupRepository.exportTo(uri) }
+                .onSuccess {
+                    _backupStatus.value = BackupStatus("Backup exported successfully.")
+                }
+                .onFailure { error ->
+                    _backupStatus.value = BackupStatus(
+                        message = "Export failed: ${error.message ?: "Unknown error"}",
+                        isError = true,
+                    )
+                }
+        }
+    }
+
+    fun importBackup(uri: Uri) {
+        viewModelScope.launch {
+            runCatching { backupRepository.importFrom(uri) }
+                .onSuccess {
+                    _backupStatus.value = BackupStatus("Backup imported successfully.")
+                }
+                .onFailure { error ->
+                    _backupStatus.value = BackupStatus(
+                        message = "Import failed: ${error.message ?: "Unknown error"}",
+                        isError = true,
+                    )
+                }
+        }
+    }
+
+    fun dismissBackupStatus() {
+        _backupStatus.value = BackupStatus()
+    }
+
     class Factory(
         private val tileRepository: TileRepository,
         private val appRepository: AppRepository,
         private val appearanceRepository: AppearanceRepository,
+        private val backupRepository: BackupRepository,
     ) : ViewModelProvider.Factory {
         @Suppress("UNCHECKED_CAST")
         override fun <T : ViewModel> create(modelClass: Class<T>): T {
-            return LauncherViewModel(tileRepository, appRepository, appearanceRepository) as T
+            return LauncherViewModel(
+                tileRepository,
+                appRepository,
+                appearanceRepository,
+                backupRepository,
+            ) as T
         }
     }
 }

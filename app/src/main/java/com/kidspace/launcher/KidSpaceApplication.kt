@@ -4,6 +4,7 @@ import android.app.Application
 import com.kidspace.launcher.data.db.KidSpaceDatabase
 import com.kidspace.launcher.data.repository.AppearanceRepository
 import com.kidspace.launcher.data.repository.AppRepository
+import com.kidspace.launcher.data.repository.BackupRepository
 import com.kidspace.launcher.data.repository.TileRepository
 
 class KidSpaceApplication : Application() {
@@ -11,4 +12,7 @@ class KidSpaceApplication : Application() {
     val tileRepository: TileRepository by lazy { TileRepository(database.childTileDao()) }
     val appRepository: AppRepository by lazy { AppRepository(this) }
     val appearanceRepository: AppearanceRepository by lazy { AppearanceRepository(this) }
+    val backupRepository: BackupRepository by lazy {
+        BackupRepository(this, tileRepository, appearanceRepository)
+    }
 }
