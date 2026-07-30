@@ -3,6 +3,7 @@ package com.kidspace.launcher.ui
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.ViewModelProvider
 import androidx.lifecycle.viewModelScope
+import android.net.Uri
 import com.kidspace.launcher.data.model.AppearanceSettings
 import com.kidspace.launcher.data.model.ChildTile
 import com.kidspace.launcher.data.model.InstalledApp
@@ -152,6 +153,14 @@ class LauncherViewModel(
 
     fun saveAppearance(settings: AppearanceSettings) {
         viewModelScope.launch { appearanceRepository.saveSettings(settings) }
+    }
+
+    fun importCustomBackground(uri: Uri) {
+        viewModelScope.launch { appearanceRepository.importCustomBackground(uri) }
+    }
+
+    fun clearCustomBackground() {
+        viewModelScope.launch { appearanceRepository.clearCustomBackground() }
     }
 
     class Factory(

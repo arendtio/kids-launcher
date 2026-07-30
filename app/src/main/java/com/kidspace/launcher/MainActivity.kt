@@ -80,6 +80,8 @@ class MainActivity : ComponentActivity() {
                             onRemoveTile = viewModel::removeTile,
                             onMoveTile = viewModel::moveTile,
                             onSaveAppearance = viewModel::saveAppearance,
+                            onImportCustomBackground = viewModel::importCustomBackground,
+                            onClearCustomBackground = viewModel::clearCustomBackground,
                         )
                     }
                 }

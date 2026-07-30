@@ -78,6 +78,8 @@ fun ParentModeScreen(
     onRemoveTile: (Long) -> Unit,
     onMoveTile: (Long, Int) -> Unit,
     onSaveAppearance: (AppearanceSettings) -> Unit,
+    onImportCustomBackground: (android.net.Uri) -> Unit,
+    onClearCustomBackground: () -> Unit,
     modifier: Modifier = Modifier,
 ) {
     var selectedTab by remember { mutableIntStateOf(ParentTab.TILES.ordinal) }
@@ -148,6 +150,8 @@ fun ParentModeScreen(
                 ParentTab.APPEARANCE -> AppearanceTab(
                     settings = appearance,
                     onSave = onSaveAppearance,
+                    onImportCustomBackground = onImportCustomBackground,
+                    onClearCustomBackground = onClearCustomBackground,
                 )
             }
         }
