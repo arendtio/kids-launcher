@@ -48,5 +48,11 @@
             android:exported="false"
             android:configChanges="orientation|screenSize|keyboardHidden|screenLayout"
             android:theme="@style/Theme.KidSpaceWebView" />
+
+        <activity
+            android:name=".YouTubePlayerActivity"
+            android:exported="false"
+            android:configChanges="orientation|screenSize|keyboardHidden|screenLayout"
+            android:theme="@style/Theme.KidSpaceYouTube" />
     </application>
 </manifest>
