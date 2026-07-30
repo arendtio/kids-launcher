@@ -42,12 +42,29 @@ class YouTubeUtilsTest {
     }
 
     @Test
-    fun `embedHtml includes loop and playlist`() {
-        val html = YouTubeUtils.embedHtml("dQw4w9WgXcQ")
+    fun `embedHtml includes loop playlist origin and referrer policy`() {
+        val origin = "https://com.kidspace.launcher"
+        val html = YouTubeUtils.embedHtml("dQw4w9WgXcQ", origin)
         assertTrue(html.contains("youtube.com/embed/dQw4w9WgXcQ"))
         assertTrue(html.contains("loop=1"))
         assertTrue(html.contains("playlist=dQw4w9WgXcQ"))
         assertTrue(html.contains("rel=0"))
+        assertTrue(html.contains("origin=https%3A%2F%2Fcom.kidspace.launcher"))
+        assertTrue(html.contains("referrerpolicy=\"strict-origin-when-cross-origin\""))
+        assertTrue(html.contains("name=\"referrer\" content=\"strict-origin-when-cross-origin\""))
+    }
+
+    @Test
+    fun `embedUrl includes origin parameter`() {
+        val url = YouTubeUtils.embedUrl("dQw4w9WgXcQ", "https://com.kidspace.launcher")
+        assertTrue(url.contains("origin=https%3A%2F%2Fcom.kidspace.launcher"))
+    }
+
+    @Test
+    fun `embedHeaders include referer`() {
+        val headers = YouTubeUtils.embedHeaders("https://com.kidspace.launcher")
+        assertEquals("https://com.kidspace.launcher", headers["Referer"])
+        assertEquals("strict-origin-when-cross-origin", headers["Referrer-Policy"])
     }
 
     @Test
