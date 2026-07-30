@@ -12,6 +12,8 @@ As a parent, I want to unlock a protected area so I can manage apps, links, and 
 - [ ] Challenge regenerates on each attempt
 - [ ] Parent area shows **all installed launchable apps**
 - [ ] Parent can add apps, websites, or YouTube links to the child surface
+- [ ] Parent can **start** any installed app directly from the Apps list without adding it to the child surface
+- [ ] Tapping an app already on the child surface in the Apps list **removes** it again (toggle add/remove)
 - [ ] Parent can remove or reorder child tiles
 - [ ] Parent can customize background and colors (see feature 03)
 - [ ] Parent can exit back to child surface

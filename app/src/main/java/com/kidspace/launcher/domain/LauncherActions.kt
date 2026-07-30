@@ -9,14 +9,18 @@ import com.kidspace.launcher.data.model.WebLaunchMode
 import com.kidspace.launcher.util.DomainMatcher
 
 object LauncherActions {
+    fun launchApp(context: Context, packageName: String) {
+        launchAppInternal(context, packageName)
+    }
+
     fun launchTile(context: Context, tile: ChildTile) {
         when (tile.type) {
-            TileType.APP -> launchApp(context, tile.target)
+            TileType.APP -> launchAppInternal(context, tile.target)
             TileType.WEBSITE, TileType.YOUTUBE -> launchWebTile(context, tile)
         }
     }
 
-    private fun launchApp(context: Context, packageName: String) {
+    private fun launchAppInternal(context: Context, packageName: String) {
         val launchIntent = context.packageManager.getLaunchIntentForPackage(packageName)
         if (launchIntent != null) {
             context.startActivity(launchIntent.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK))
