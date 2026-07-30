@@ -14,12 +14,17 @@ A child-friendly Android home launcher for use on a regular (adult) Android prof
 
 See the [`requirements/`](requirements/) directory for product vision, features, and architecture.
 
-## Build
+## Install
+
+Download the latest debug APK: [`releases/KidSpace-debug.apk`](releases/KidSpace-debug.apk)
+
+Or build locally:
 
 ```bash
 bash scripts/setup-android-sdk.sh
 export ANDROID_HOME=$HOME/android-sdk
 ./gradlew assembleDebug
+./gradlew installDebug   # with device connected
 ```
 
 See [`commands.md`](commands.md) for the full command registry.

@@ -10,6 +10,7 @@ Set `ANDROID_HOME` (default: `$HOME/android-sdk`) and ensure SDK components are 
 
 - `./gradlew assembleDebug` — Build debug APK
 - `./gradlew assembleRelease` — Build release APK (unsigned)
+- `cp app/build/outputs/apk/debug/app-debug.apk releases/KidSpace-debug.apk` — Update committed debug APK in `releases/`
 
 ## Test Commands
 

@@ -36,19 +36,19 @@ def rounded_rect(draw, xy, radius, fill, outline=None, width=0):
 
 
 def child_home():
-    img = Image.new("RGB", (W, H), "#AED581")
+    img = Image.new("RGB", (W, H), "#C8F0D4")
     draw = ImageDraw.Draw(img)
-    gradient(draw, 0, H, (255, 241, 118), (174, 213, 129))
+    gradient(draw, 0, H, (184, 228, 255), (200, 240, 212))
 
-    rounded_rect(draw, (60, 120, W - 60, 340), 56, (107, 157, 255, 230))
+    rounded_rect(draw, (60, 120, W - 60, 340), 56, (79, 154, 216, 230))
     draw.text((W // 2, 190), "✨ KidSpace ✨", fill="white", font=font(56, True), anchor="mm")
-    draw.text((W // 2, 270), "Tap your favorites below!", fill=(255, 217, 61), font=font(32), anchor="mm")
+    draw.text((W // 2, 270), "Tap your favorites below!", fill=(126, 200, 227), font=font(32), anchor="mm")
 
     tiles = [
-        ("YouTube Kids", (255, 107, 157), "▶"),
-        ("PBS Kids", (76, 175, 80), "P"),
-        ("Khan Academy", (255, 152, 0), "K"),
-        ("Story Time", (156, 39, 176), "📖"),
+        ("YouTube Kids", (255, 171, 118), "▶"),
+        ("PBS Kids", (79, 154, 216), "P"),
+        ("Khan Academy", (126, 200, 227), "K"),
+        ("Story Time", (255, 171, 118), "📖"),
     ]
     positions = [(60, 400), (W // 2 + 20, 400), (60, 920), (W // 2 + 20, 920)]
     for i, (label, accent, glyph) in enumerate(tiles):
@@ -56,7 +56,7 @@ def child_home():
         rounded_rect(draw, (x, y, x + 460, y + 460), 56, (255, 255, 255))
         rounded_rect(draw, (x + 70, y + 50, x + 390, y + 290), 40, accent)
         draw.text((x + 230, y + 170), glyph, fill="white", font=font(72, True), anchor="mm")
-        draw.text((x + 230, y + 360), label, fill=(107, 157, 255), font=font(34, True), anchor="mm")
+        draw.text((x + 230, y + 360), label, fill=(79, 154, 216), font=font(34, True), anchor="mm")
 
     img.save(OUT / "01-child-home.png")
 

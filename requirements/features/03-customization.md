@@ -15,7 +15,7 @@ As a parent, I want to personalize the child surface so it feels fun and unique 
 
 ## Preset Backgrounds (v1)
 
-- Sunny Meadow (warm yellow-green gradient)
+- Sunny Meadow → **Sky Meadow** (soft sky-blue to mint gradient)
 - Ocean Bubbles (blue-teal gradient)
 - Candy Clouds (pink-purple gradient)
 - Starry Night (deep blue with stars)
