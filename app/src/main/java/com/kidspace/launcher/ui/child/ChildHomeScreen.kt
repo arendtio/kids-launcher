@@ -1,7 +1,6 @@
 package com.kidspace.launcher.ui.child
 
 import androidx.compose.foundation.ExperimentalFoundationApi
-import androidx.compose.foundation.background
 import androidx.compose.foundation.combinedClickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
@@ -25,7 +24,6 @@ import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
-import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
@@ -73,17 +71,16 @@ fun ChildHomeScreen(
                 EmptyChildState(accent = accent)
             } else {
                 LazyVerticalGrid(
-                    columns = GridCells.Fixed(2),
-                    contentPadding = PaddingValues(bottom = 24.dp),
-                    horizontalArrangement = Arrangement.spacedBy(16.dp),
-                    verticalArrangement = Arrangement.spacedBy(16.dp),
+                    columns = GridCells.Fixed(4),
+                    contentPadding = PaddingValues(bottom = 16.dp),
+                    horizontalArrangement = Arrangement.spacedBy(10.dp),
+                    verticalArrangement = Arrangement.spacedBy(10.dp),
                     modifier = Modifier.fillMaxSize(),
                 ) {
                     items(tiles, key = { it.id }) { tile ->
                         ChildTileCard(
                             tile = tile,
                             primary = primary,
-                            secondary = secondary,
                             onClick = { onTileClick(tile) },
                         )
                     }
@@ -174,52 +171,49 @@ private fun EmptyChildState(accent: Color) {
 private fun ChildTileCard(
     tile: ChildTile,
     primary: Color,
-    secondary: Color,
     onClick: () -> Unit,
 ) {
-    val gradient = Brush.linearGradient(listOf(primary, secondary))
     Card(
         modifier = Modifier
             .aspectRatio(1f)
-            .clip(RoundedCornerShape(28.dp))
+            .clip(RoundedCornerShape(16.dp))
             .combinedClickable(onClick = onClick),
-        shape = RoundedCornerShape(28.dp),
+        shape = RoundedCornerShape(16.dp),
         colors = CardDefaults.cardColors(containerColor = Color.White.copy(alpha = 0.95f)),
-        elevation = CardDefaults.cardElevation(defaultElevation = 10.dp),
+        elevation = CardDefaults.cardElevation(defaultElevation = 6.dp),
     ) {
         Column(
             modifier = Modifier
                 .fillMaxSize()
-                .padding(12.dp),
+                .padding(6.dp),
             horizontalAlignment = Alignment.CenterHorizontally,
-            verticalArrangement = Arrangement.Center,
         ) {
             Box(
                 modifier = Modifier
-                    .fillMaxWidth(0.7f)
-                    .aspectRatio(1f)
-                    .clip(RoundedCornerShape(20.dp))
-                    .background(gradient),
+                    .weight(1f)
+                    .fillMaxWidth()
+                    .clip(RoundedCornerShape(12.dp)),
                 contentAlignment = Alignment.Center,
             ) {
                 TileIcon(
                     type = tile.type,
                     target = tile.target,
                     iconKey = tile.iconKey,
-                    size = 64.dp,
-                    tint = Color.White,
+                    modifier = Modifier.fillMaxSize(),
+                    tint = primary,
                 )
             }
-            Spacer(modifier = Modifier.height(10.dp))
+            Spacer(modifier = Modifier.height(4.dp))
             Text(
                 text = tile.label,
-                fontSize = 18.sp,
+                fontSize = 11.sp,
                 fontWeight = FontWeight.Bold,
                 color = primary,
                 textAlign = TextAlign.Center,
                 maxLines = 2,
                 overflow = TextOverflow.Ellipsis,
-                lineHeight = 22.sp,
+                lineHeight = 13.sp,
+                modifier = Modifier.fillMaxWidth(),
             )
         }
     }
