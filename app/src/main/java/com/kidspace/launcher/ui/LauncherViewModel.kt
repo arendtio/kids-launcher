@@ -15,7 +15,13 @@ import com.kidspace.launcher.data.repository.BackupRepository
 import com.kidspace.launcher.data.repository.TileRepository
 import com.kidspace.launcher.domain.ParentGateChallenge
 import com.kidspace.launcher.update.AppUpdateRepository
+import com.kidspace.launcher.data.model.PermissionPolicy
+import com.kidspace.launcher.data.model.WebLaunchMode
+import com.kidspace.launcher.data.repository.YouTubeSettingsRepository
 import com.kidspace.launcher.util.IconKeyGenerator
+import com.kidspace.launcher.util.YouTubeUtils
+import com.kidspace.launcher.youtube.YouTubeSearchRepository
+import com.kidspace.launcher.youtube.YouTubeSearchResult
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.SharingStarted
 import kotlinx.coroutines.flow.StateFlow
@@ -50,12 +56,24 @@ data class AppUpdateStatus(
     val isError: Boolean = false,
 )
 
+data class YouTubeSearchUiState(
+    val apiKey: String = "",
+    val query: String = "",
+    val isSearching: Boolean = false,
+    val results: List<YouTubeSearchResult> = emptyList(),
+    val selectedVideoIds: Set<String> = emptySet(),
+    val errorMessage: String? = null,
+    val statusMessage: String? = null,
+)
+
 class LauncherViewModel(
     private val tileRepository: TileRepository,
     private val appRepository: AppRepository,
     private val appearanceRepository: AppearanceRepository,
     private val backupRepository: BackupRepository,
     private val appUpdateRepository: AppUpdateRepository,
+    private val youtubeSettingsRepository: YouTubeSettingsRepository,
+    private val youtubeSearchRepository: YouTubeSearchRepository,
 ) : ViewModel() {
 
     val tiles: StateFlow<List<ChildTile>> = tileRepository.observeTiles()
@@ -85,6 +103,9 @@ class LauncherViewModel(
     private val _updateStatus = MutableStateFlow(AppUpdateStatus())
     val updateStatus: StateFlow<AppUpdateStatus> = _updateStatus.asStateFlow()
 
+    private val _youtubeSearch = MutableStateFlow(YouTubeSearchUiState())
+    val youtubeSearch: StateFlow<YouTubeSearchUiState> = _youtubeSearch.asStateFlow()
+
     init {
         viewModelScope.launch {
             combine(
@@ -93,6 +114,13 @@ class LauncherViewModel(
             ) { _, _ -> }
                 .first()
             _isLauncherReady.value = true
+        }
+        viewModelScope.launch {
+            youtubeSettingsRepository.observeApiKey().collect { savedKey ->
+                if (_youtubeSearch.value.apiKey.isEmpty()) {
+                    _youtubeSearch.value = _youtubeSearch.value.copy(apiKey = savedKey)
+                }
+            }
         }
     }
 
@@ -300,6 +328,125 @@ class LauncherViewModel(
         _updateStatus.value = AppUpdateStatus()
     }
 
+    fun updateYouTubeApiKey(apiKey: String) {
+        _youtubeSearch.value = _youtubeSearch.value.copy(apiKey = apiKey, errorMessage = null)
+    }
+
+    fun saveYouTubeApiKey() {
+        viewModelScope.launch {
+            youtubeSettingsRepository.saveApiKey(_youtubeSearch.value.apiKey)
+            _youtubeSearch.value = _youtubeSearch.value.copy(statusMessage = "API key saved.")
+        }
+    }
+
+    fun updateYouTubeQuery(query: String) {
+        _youtubeSearch.value = _youtubeSearch.value.copy(query = query, errorMessage = null)
+    }
+
+    fun searchYouTubeVideos() {
+        viewModelScope.launch {
+            val query = _youtubeSearch.value.query
+            _youtubeSearch.value = _youtubeSearch.value.copy(
+                isSearching = true,
+                errorMessage = null,
+                statusMessage = null,
+            )
+            val apiKey = youtubeSettingsRepository.effectiveApiKey()
+                .ifBlank { _youtubeSearch.value.apiKey.trim() }
+            runCatching { youtubeSearchRepository.search(query, apiKey) }
+                .onSuccess { results ->
+                    _youtubeSearch.value = _youtubeSearch.value.copy(
+                        isSearching = false,
+                        results = results,
+                        selectedVideoIds = emptySet(),
+                    )
+                }
+                .onFailure { error ->
+                    _youtubeSearch.value = _youtubeSearch.value.copy(
+                        isSearching = false,
+                        errorMessage = error.message ?: "Search failed",
+                    )
+                }
+        }
+    }
+
+    fun toggleYouTubeSelection(videoId: String) {
+        val current = _youtubeSearch.value.selectedVideoIds
+        _youtubeSearch.value = _youtubeSearch.value.copy(
+            selectedVideoIds = if (videoId in current) current - videoId else current + videoId,
+        )
+    }
+
+    fun selectAllYouTubeResults() {
+        val selectable = _youtubeSearch.value.results
+            .map { it.videoId }
+            .filter { videoId ->
+                tiles.value.none { tile ->
+                    tile.type == TileType.YOUTUBE &&
+                        YouTubeUtils.extractVideoId(tile.target) == videoId
+                }
+            }
+            .toSet()
+        _youtubeSearch.value = _youtubeSearch.value.copy(selectedVideoIds = selectable)
+    }
+
+    fun clearYouTubeSelection() {
+        _youtubeSearch.value = _youtubeSearch.value.copy(selectedVideoIds = emptySet())
+    }
+
+    fun addSelectedYouTubeVideos() {
+        viewModelScope.launch {
+            val selectedIds = _youtubeSearch.value.selectedVideoIds
+            val videos = _youtubeSearch.value.results.filter { it.videoId in selectedIds }
+            val webConfig = defaultYouTubeWebConfig()
+            var added = 0
+            videos.forEach { video ->
+                val exists = tiles.value.any { tile ->
+                    tile.type == TileType.YOUTUBE &&
+                        YouTubeUtils.extractVideoId(tile.target) == video.videoId
+                }
+                if (!exists) {
+                    tileRepository.addTile(
+                        ChildTile(
+                            type = TileType.YOUTUBE,
+                            label = video.title,
+                            target = video.watchUrl,
+                            iconKey = IconKeyGenerator.forUrl(video.watchUrl),
+                            sortOrder = 0,
+                            webLaunchMode = webConfig.webLaunchMode,
+                            cameraPolicy = webConfig.cameraPolicy,
+                            microphonePolicy = webConfig.microphonePolicy,
+                            locationPolicy = webConfig.locationPolicy,
+                        ),
+                    )
+                    added++
+                }
+            }
+            _youtubeSearch.value = _youtubeSearch.value.copy(
+                selectedVideoIds = emptySet(),
+                statusMessage = if (added > 0) {
+                    "Added $added video${if (added == 1) "" else "s"} to child screen."
+                } else {
+                    "Selected videos are already on the child screen."
+                },
+            )
+        }
+    }
+
+    fun dismissYouTubeSearchStatus() {
+        _youtubeSearch.value = _youtubeSearch.value.copy(
+            errorMessage = null,
+            statusMessage = null,
+        )
+    }
+
+    private fun defaultYouTubeWebConfig() = WebLinkConfig(
+        webLaunchMode = WebLaunchMode.IN_APP,
+        cameraPolicy = PermissionPolicy.GRANT,
+        microphonePolicy = PermissionPolicy.GRANT,
+        locationPolicy = PermissionPolicy.DENY,
+    )
+
     fun openChildAppearance() {
         _showChildAppearance.value = true
     }
@@ -314,6 +461,8 @@ class LauncherViewModel(
         private val appearanceRepository: AppearanceRepository,
         private val backupRepository: BackupRepository,
         private val appUpdateRepository: AppUpdateRepository,
+        private val youtubeSettingsRepository: YouTubeSettingsRepository,
+        private val youtubeSearchRepository: YouTubeSearchRepository,
     ) : ViewModelProvider.Factory {
         @Suppress("UNCHECKED_CAST")
         override fun <T : ViewModel> create(modelClass: Class<T>): T {
@@ -323,6 +472,8 @@ class LauncherViewModel(
                 appearanceRepository,
                 backupRepository,
                 appUpdateRepository,
+                youtubeSettingsRepository,
+                youtubeSearchRepository,
             ) as T
         }
     }
