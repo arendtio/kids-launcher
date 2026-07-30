@@ -46,7 +46,8 @@
         <activity
             android:name=".WebViewActivity"
             android:exported="false"
+            android:configChanges="orientation|screenSize|keyboardHidden"
             android:screenOrientation="portrait"
-            android:theme="@style/Theme.KidSpaceLauncher" />
+            android:theme="@style/Theme.KidSpaceWebView" />
     </application>
 </manifest>
