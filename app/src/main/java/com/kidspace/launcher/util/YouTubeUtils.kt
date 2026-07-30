@@ -15,7 +15,7 @@ object YouTubeUtils {
 
     fun embedUrl(videoId: String, origin: String): String {
         val encodedOrigin = URLEncoder.encode(origin, Charsets.UTF_8.name())
-        val params = embedParams(videoId, encodedOrigin)
+        val params = embedParams(encodedOrigin)
         return "https://www.youtube.com/embed/$videoId?$params"
     }
 
@@ -35,10 +35,21 @@ object YouTubeUtils {
     fun thumbnailUrl(videoId: String, quality: ThumbnailQuality = ThumbnailQuality.HIGH): String =
         "https://img.youtube.com/vi/$videoId/${quality.fileName}"
 
-    fun embedHtml(videoId: String, origin: String): String {
-        val encodedOrigin = URLEncoder.encode(origin, Charsets.UTF_8.name())
-        val params = embedParams(videoId, encodedOrigin)
+    private fun embedParams(encodedOrigin: String): String =
+        buildList {
+            add("autoplay=1")
+            add("playsinline=1")
+            add("rel=0")
+            add("modestbranding=1")
+            add("controls=1")
+            add("fs=1")
+            add("iv_load_policy=3")
+            add("enablejsapi=1")
+            add("origin=$encodedOrigin")
+        }.joinToString("&")
 
+    fun playerHtml(videoId: String, origin: String): String {
+        val playerVars = playerVarsJson(origin)
         return """
             <!DOCTYPE html>
             <html>
@@ -54,42 +65,52 @@ object YouTubeUtils {
                         background: #000;
                         overflow: hidden;
                     }
-                    iframe {
+                    #player {
                         position: fixed;
                         top: 0;
                         left: 0;
                         width: 100%;
                         height: 100%;
-                        border: 0;
                     }
                 </style>
             </head>
             <body>
-                <iframe
-                    src="https://www.youtube.com/embed/$videoId?$params"
-                    allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share"
-                    referrerpolicy="strict-origin-when-cross-origin"
-                    allowfullscreen>
-                </iframe>
+                <div id="player"></div>
+                <script src="https://www.youtube.com/iframe_api"></script>
+                <script>
+                    var player;
+                    function onYouTubeIframeAPIReady() {
+                        player = new YT.Player('player', {
+                            videoId: '$videoId',
+                            playerVars: $playerVars,
+                            events: {
+                                onStateChange: function(event) {
+                                    if (event.data === 0) {
+                                        KidSpacePlayer.onVideoEnded();
+                                    }
+                                }
+                            }
+                        });
+                    }
+                </script>
             </body>
             </html>
         """.trimIndent()
     }
 
-    private fun embedParams(videoId: String, encodedOrigin: String): String =
-        buildList {
-            add("autoplay=1")
-            add("playsinline=1")
-            add("rel=0")
-            add("modestbranding=1")
-            add("controls=1")
-            add("fs=1")
-            add("iv_load_policy=3")
-            add("loop=1")
-            add("playlist=$videoId")
-            add("enablejsapi=1")
-            add("origin=$encodedOrigin")
-        }.joinToString("&")
+    private fun playerVarsJson(origin: String): String = """
+        {
+            "autoplay": 1,
+            "playsinline": 1,
+            "rel": 0,
+            "modestbranding": 1,
+            "controls": 1,
+            "fs": 1,
+            "iv_load_policy": 3,
+            "enablejsapi": 1,
+            "origin": "$origin"
+        }
+    """.trimIndent()
 
     fun isYouTubeHost(host: String?): Boolean {
         val lower = host?.lowercase() ?: return false

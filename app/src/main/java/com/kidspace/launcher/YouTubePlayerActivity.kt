@@ -5,6 +5,7 @@ import android.graphics.Color
 import android.os.Bundle
 import android.view.ViewGroup
 import android.webkit.CookieManager
+import android.webkit.JavascriptInterface
 import android.webkit.WebChromeClient
 import android.webkit.WebResourceRequest
 import android.webkit.WebSettings
@@ -53,6 +54,11 @@ class YouTubePlayerActivity : ComponentActivity() {
             CookieManager.getInstance().setAcceptCookie(true)
             CookieManager.getInstance().setAcceptThirdPartyCookies(this, true)
 
+            addJavascriptInterface(
+                YouTubePlayerBridge { runOnUiThread { finish() } },
+                JS_BRIDGE_NAME,
+            )
+
             webViewClient = object : WebViewClient() {
                 override fun shouldOverrideUrlLoading(
                     view: WebView?,
@@ -86,8 +92,13 @@ class YouTubePlayerActivity : ComponentActivity() {
     }
 
     private fun loadEmbeddedVideo(videoId: String) {
-        val embedUrl = YouTubeUtils.embedUrl(videoId, embedOrigin)
-        webView.loadUrl(embedUrl, YouTubeUtils.embedHeaders(embedOrigin))
+        webView.loadDataWithBaseURL(
+            embedOrigin,
+            YouTubeUtils.playerHtml(videoId, embedOrigin),
+            "text/html",
+            "UTF-8",
+            null,
+        )
     }
 
     override fun onResume() {
@@ -114,6 +125,7 @@ class YouTubePlayerActivity : ComponentActivity() {
 
     override fun onDestroy() {
         if (::webView.isInitialized) {
+            webView.removeJavascriptInterface(JS_BRIDGE_NAME)
             CookieManager.getInstance().setAcceptThirdPartyCookies(webView, false)
             webView.stopLoading()
             webView.destroy()
@@ -121,7 +133,17 @@ class YouTubePlayerActivity : ComponentActivity() {
         super.onDestroy()
     }
 
+    private class YouTubePlayerBridge(
+        private val onVideoEnded: () -> Unit,
+    ) {
+        @JavascriptInterface
+        fun onVideoEnded() {
+            onVideoEnded.invoke()
+        }
+    }
+
     companion object {
         const val EXTRA_VIDEO_ID = "extra_video_id"
+        private const val JS_BRIDGE_NAME = "KidSpacePlayer"
     }
 }
