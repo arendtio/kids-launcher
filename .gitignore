@@ -1,0 +1,23 @@
+*.iml
+.gradle/
+/local.properties
+/.idea/
+.DS_Store
+/build/
+**/build/
+captures/
+.externalNativeBuild/
+.cxx/
+*.apk
+*.ap_
+*.aab
+!releases/*.apk
+
+# Android Studio
+*.hprof
+
+# Kotlin
+.kotlin/
+
+# SDK (local)
+android-sdk/
