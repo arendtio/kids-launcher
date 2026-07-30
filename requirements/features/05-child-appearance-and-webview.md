@@ -25,3 +25,4 @@ As a parent, I want website links to open in a simple built-in browser without b
 - [ ] Parent configures auto-grant/deny for camera, microphone, and location per link
 - [ ] Permission policies apply to all pages on that domain during the session
 - [ ] Uses the system WebView (no extra browser engine bundled)
+- [ ] YouTube links opened in-app use a dedicated embedded player instead of the full YouTube website
