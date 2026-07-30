@@ -1,9 +1,23 @@
 package com.kidspace.launcher.util
 
 import java.net.URI
+import java.net.URLEncoder
 
 object YouTubeUtils {
     private val videoIdPattern = Regex("^[\\w-]{11}$")
+
+    fun embedOrigin(packageName: String): String = "https://$packageName"
+
+    fun embedHeaders(origin: String): Map<String, String> = mapOf(
+        "Referer" to origin,
+        "Referrer-Policy" to "strict-origin-when-cross-origin",
+    )
+
+    fun embedUrl(videoId: String, origin: String): String {
+        val encodedOrigin = URLEncoder.encode(origin, Charsets.UTF_8.name())
+        val params = embedParams(videoId, encodedOrigin)
+        return "https://www.youtube.com/embed/$videoId?$params"
+    }
 
     fun extractVideoId(url: String): String? {
         val normalized = if (url.startsWith("http")) url else "https://$url"
@@ -21,25 +35,16 @@ object YouTubeUtils {
     fun thumbnailUrl(videoId: String, quality: ThumbnailQuality = ThumbnailQuality.HIGH): String =
         "https://img.youtube.com/vi/$videoId/${quality.fileName}"
 
-    fun embedHtml(videoId: String): String {
-        val params = buildList {
-            add("autoplay=1")
-            add("playsinline=1")
-            add("rel=0")
-            add("modestbranding=1")
-            add("controls=1")
-            add("fs=1")
-            add("iv_load_policy=3")
-            add("loop=1")
-            add("playlist=$videoId")
-            add("enablejsapi=1")
-        }.joinToString("&")
+    fun embedHtml(videoId: String, origin: String): String {
+        val encodedOrigin = URLEncoder.encode(origin, Charsets.UTF_8.name())
+        val params = embedParams(videoId, encodedOrigin)
 
         return """
             <!DOCTYPE html>
             <html>
             <head>
                 <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0">
+                <meta name="referrer" content="strict-origin-when-cross-origin">
                 <style>
                     html, body {
                         margin: 0;
@@ -63,12 +68,28 @@ object YouTubeUtils {
                 <iframe
                     src="https://www.youtube.com/embed/$videoId?$params"
                     allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share"
+                    referrerpolicy="strict-origin-when-cross-origin"
                     allowfullscreen>
                 </iframe>
             </body>
             </html>
         """.trimIndent()
     }
+
+    private fun embedParams(videoId: String, encodedOrigin: String): String =
+        buildList {
+            add("autoplay=1")
+            add("playsinline=1")
+            add("rel=0")
+            add("modestbranding=1")
+            add("controls=1")
+            add("fs=1")
+            add("iv_load_policy=3")
+            add("loop=1")
+            add("playlist=$videoId")
+            add("enablejsapi=1")
+            add("origin=$encodedOrigin")
+        }.joinToString("&")
 
     fun isYouTubeHost(host: String?): Boolean {
         val lower = host?.lowercase() ?: return false

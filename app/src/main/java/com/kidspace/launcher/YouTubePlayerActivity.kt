@@ -4,8 +4,10 @@ import android.annotation.SuppressLint
 import android.graphics.Color
 import android.os.Bundle
 import android.view.ViewGroup
+import android.webkit.CookieManager
 import android.webkit.WebChromeClient
 import android.webkit.WebResourceRequest
+import android.webkit.WebSettings
 import android.webkit.WebView
 import android.webkit.WebViewClient
 import androidx.activity.ComponentActivity
@@ -16,6 +18,7 @@ import com.kidspace.launcher.util.YouTubeUtils
 class YouTubePlayerActivity : ComponentActivity() {
 
     private lateinit var webView: WebView
+    private lateinit var embedOrigin: String
 
     @SuppressLint("SetJavaScriptEnabled")
     override fun onCreate(savedInstanceState: Bundle?) {
@@ -29,6 +32,7 @@ class YouTubePlayerActivity : ComponentActivity() {
             finish()
             return
         }
+        embedOrigin = YouTubeUtils.embedOrigin(packageName)
 
         webView = WebView(this).apply {
             layoutParams = ViewGroup.LayoutParams(
@@ -42,6 +46,12 @@ class YouTubePlayerActivity : ComponentActivity() {
             settings.mediaPlaybackRequiresUserGesture = false
             settings.javaScriptCanOpenWindowsAutomatically = false
             settings.setSupportMultipleWindows(false)
+            settings.useWideViewPort = true
+            settings.loadWithOverviewMode = true
+            settings.mixedContentMode = WebSettings.MIXED_CONTENT_ALWAYS_ALLOW
+
+            CookieManager.getInstance().setAcceptCookie(true)
+            CookieManager.getInstance().setAcceptThirdPartyCookies(this, true)
 
             webViewClient = object : WebViewClient() {
                 override fun shouldOverrideUrlLoading(
@@ -71,20 +81,20 @@ class YouTubePlayerActivity : ComponentActivity() {
         if (savedInstanceState != null) {
             webView.restoreState(savedInstanceState)
         } else {
-            webView.loadDataWithBaseURL(
-                "https://www.youtube.com",
-                YouTubeUtils.embedHtml(videoId),
-                "text/html",
-                "UTF-8",
-                null,
-            )
+            loadEmbeddedVideo(videoId)
         }
+    }
+
+    private fun loadEmbeddedVideo(videoId: String) {
+        val embedUrl = YouTubeUtils.embedUrl(videoId, embedOrigin)
+        webView.loadUrl(embedUrl, YouTubeUtils.embedHeaders(embedOrigin))
     }
 
     override fun onResume() {
         super.onResume()
         if (::webView.isInitialized) {
             webView.onResume()
+            CookieManager.getInstance().flush()
         }
     }
 
@@ -104,6 +114,7 @@ class YouTubePlayerActivity : ComponentActivity() {
 
     override fun onDestroy() {
         if (::webView.isInitialized) {
+            CookieManager.getInstance().setAcceptThirdPartyCookies(webView, false)
             webView.stopLoading()
             webView.destroy()
         }
