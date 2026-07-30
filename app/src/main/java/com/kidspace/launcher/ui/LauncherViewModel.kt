@@ -123,6 +123,8 @@ class LauncherViewModel(
 
     fun addAppTile(app: InstalledApp) {
         viewModelScope.launch {
+            val alreadyAdded = tiles.value.any { it.type == TileType.APP && it.target == app.packageName }
+            if (alreadyAdded) return@launch
             tileRepository.addTile(
                 ChildTile(
                     type = TileType.APP,
@@ -132,6 +134,34 @@ class LauncherViewModel(
                     sortOrder = 0,
                 ),
             )
+        }
+    }
+
+    fun removeAppFromChildSurface(packageName: String) {
+        viewModelScope.launch {
+            val tile = tiles.value.find { it.type == TileType.APP && it.target == packageName }
+            if (tile != null) {
+                tileRepository.removeTile(tile.id)
+            }
+        }
+    }
+
+    fun toggleAppOnChildSurface(app: InstalledApp) {
+        viewModelScope.launch {
+            val existing = tiles.value.find { it.type == TileType.APP && it.target == app.packageName }
+            if (existing != null) {
+                tileRepository.removeTile(existing.id)
+            } else {
+                tileRepository.addTile(
+                    ChildTile(
+                        type = TileType.APP,
+                        label = app.label,
+                        target = app.packageName,
+                        iconKey = IconKeyGenerator.forApp(app.packageName),
+                        sortOrder = 0,
+                    ),
+                )
+            }
         }
     }
 

@@ -24,7 +24,9 @@ import androidx.compose.material3.CardDefaults
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Icon
 import androidx.compose.material3.Text
+import android.content.res.Configuration
 import androidx.compose.runtime.Composable
+import androidx.compose.ui.platform.LocalConfiguration
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
@@ -53,6 +55,10 @@ fun ChildHomeScreen(
     val primary = appearance.primaryColor.toComposeColor()
     val secondary = appearance.secondaryColor.toComposeColor()
     val accent = appearance.accentColor.toComposeColor()
+    val configuration = LocalConfiguration.current
+    val isLandscape = configuration.orientation == Configuration.ORIENTATION_LANDSCAPE
+    val columnCount = if (isLandscape) 6 else 4
+    val contentPadding = if (isLandscape) 12.dp else 20.dp
 
     Box(modifier = modifier.fillMaxSize()) {
         ChildBackground(
@@ -62,26 +68,27 @@ fun ChildHomeScreen(
         Column(
             modifier = Modifier
                 .fillMaxSize()
-                .padding(20.dp),
+                .padding(contentPadding),
         ) {
             ChildHeader(
                 primary = primary,
                 secondary = secondary,
+                compact = isLandscape,
                 onParentAccessRequest = onParentAccessRequest,
             )
 
-            Spacer(modifier = Modifier.height(16.dp))
+            Spacer(modifier = Modifier.height(if (isLandscape) 8.dp else 16.dp))
 
             LazyVerticalGrid(
-                columns = GridCells.Fixed(4),
+                columns = GridCells.Fixed(columnCount),
                 contentPadding = PaddingValues(bottom = 16.dp),
-                horizontalArrangement = Arrangement.spacedBy(10.dp),
-                verticalArrangement = Arrangement.spacedBy(10.dp),
+                horizontalArrangement = Arrangement.spacedBy(if (isLandscape) 8.dp else 10.dp),
+                verticalArrangement = Arrangement.spacedBy(if (isLandscape) 8.dp else 10.dp),
                 modifier = Modifier.fillMaxSize(),
             ) {
                 if (tiles.isEmpty()) {
-                    item(span = { GridItemSpan(4) }) {
-                        EmptyChildState(accent = accent)
+                    item(span = { GridItemSpan(columnCount) }) {
+                        EmptyChildState(accent = accent, compact = isLandscape)
                     }
                 } else {
                     items(tiles, key = { it.id }) { tile ->
@@ -109,6 +116,7 @@ fun ChildHomeScreen(
 private fun ChildHeader(
     primary: Color,
     secondary: Color,
+    compact: Boolean,
     onParentAccessRequest: () -> Unit,
 ) {
     Card(
@@ -125,38 +133,43 @@ private fun ChildHeader(
         Column(
             modifier = Modifier
                 .fillMaxWidth()
-                .padding(vertical = 20.dp, horizontal = 24.dp),
+                .padding(
+                    vertical = if (compact) 12.dp else 20.dp,
+                    horizontal = if (compact) 16.dp else 24.dp,
+                ),
             horizontalAlignment = Alignment.CenterHorizontally,
         ) {
             Text(
                 text = "✨ KidSpace ✨",
-                fontSize = 32.sp,
+                fontSize = if (compact) 24.sp else 32.sp,
                 fontWeight = FontWeight.Bold,
                 color = Color.White,
             )
             Spacer(modifier = Modifier.height(4.dp))
             Text(
                 text = "Tap your favorites below!",
-                fontSize = 16.sp,
+                fontSize = if (compact) 14.sp else 16.sp,
                 color = Color.White.copy(alpha = 0.95f),
                 fontWeight = FontWeight.Medium,
                 textAlign = TextAlign.Center,
             )
-            Spacer(modifier = Modifier.height(6.dp))
-            Text(
-                text = "Parents: long-press here for parent mode",
-                fontSize = 13.sp,
-                color = secondary,
-                fontWeight = FontWeight.Medium,
-                textAlign = TextAlign.Center,
-                lineHeight = 16.sp,
-            )
+            if (!compact) {
+                Spacer(modifier = Modifier.height(6.dp))
+                Text(
+                    text = "Parents: long-press here for parent mode",
+                    fontSize = 13.sp,
+                    color = secondary,
+                    fontWeight = FontWeight.Medium,
+                    textAlign = TextAlign.Center,
+                    lineHeight = 16.sp,
+                )
+            }
         }
     }
 }
 
 @Composable
-private fun EmptyChildState(accent: Color) {
+private fun EmptyChildState(accent: Color, compact: Boolean = false) {
     Box(
         modifier = Modifier.fillMaxSize(),
         contentAlignment = Alignment.Center,
