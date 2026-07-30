@@ -12,6 +12,7 @@ As a parent, I want to export and import my KidSpace configuration so I can move
 - [ ] Import reads a valid JSON backup and replaces current tiles and appearance
 - [ ] Import shows a confirmation dialog before overwriting existing data
 - [ ] Success and error feedback is shown after export/import
+- [ ] Parent can download the latest debug APK from GitHub and install it from the Backup tab
 
 ## Backup Format
 

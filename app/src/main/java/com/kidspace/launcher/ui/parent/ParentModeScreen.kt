@@ -96,6 +96,14 @@ fun ParentModeScreen(
     backupStatusMessage: String?,
     backupStatusIsError: Boolean,
     onDismissBackupStatus: () -> Unit,
+    appVersionName: String,
+    isUpdateDownloading: Boolean,
+    updateStatusMessage: String?,
+    updateStatusIsError: Boolean,
+    canInstallUpdate: Boolean,
+    onDownloadUpdate: () -> Unit,
+    onInstallUpdate: () -> Unit,
+    onDismissUpdateStatus: () -> Unit,
     modifier: Modifier = Modifier,
 ) {
     var selectedTab by remember { mutableIntStateOf(ParentTab.TILES.ordinal) }
@@ -187,6 +195,14 @@ fun ParentModeScreen(
                     onExport = onExportBackup,
                     onImport = onImportBackup,
                     onDismissStatus = onDismissBackupStatus,
+                    appVersionName = appVersionName,
+                    isUpdateDownloading = isUpdateDownloading,
+                    updateStatusMessage = updateStatusMessage,
+                    updateStatusIsError = updateStatusIsError,
+                    canInstallUpdate = canInstallUpdate,
+                    onDownloadUpdate = onDownloadUpdate,
+                    onInstallUpdate = onInstallUpdate,
+                    onDismissUpdateStatus = onDismissUpdateStatus,
                 )
             }
         }
