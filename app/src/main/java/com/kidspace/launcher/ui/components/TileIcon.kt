@@ -39,6 +39,7 @@ fun TileIcon(
     modifier: Modifier = Modifier,
     size: Dp? = null,
     tint: Color = Color.White,
+    contentScale: ContentScale = ContentScale.Crop,
 ) {
     val iconModifier = if (size != null) {
         modifier.size(size)
@@ -59,7 +60,7 @@ fun TileIcon(
                     model = drawable,
                     contentDescription = null,
                     modifier = iconModifier.clip(shape),
-                    contentScale = ContentScale.Crop,
+                    contentScale = contentScale,
                 )
             } else {
                 FallbackIcon(iconKey, iconModifier, size, tint)
@@ -77,7 +78,7 @@ fun TileIcon(
                         .build(),
                     contentDescription = null,
                     modifier = iconModifier.clip(shape),
-                    contentScale = ContentScale.Crop,
+                    contentScale = contentScale,
                     loading = {
                         FallbackIcon(iconKey, Modifier.fillMaxSize(), size, tint.copy(alpha = 0.5f))
                     },
@@ -100,7 +101,7 @@ fun TileIcon(
                     .build(),
                 contentDescription = null,
                 modifier = iconModifier.clip(shape),
-                contentScale = ContentScale.Crop,
+                contentScale = contentScale,
                 loading = {
                     FallbackIcon(iconKey, Modifier.fillMaxSize(), size, tint.copy(alpha = 0.5f))
                 },

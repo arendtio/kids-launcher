@@ -9,6 +9,7 @@ As a child using the device, I want a colorful home screen with big picture butt
 - [ ] Child surface shows only tiles configured by a parent
 - [ ] Each tile has a **graphic element** (app icon, website favicon, or permanent random icon)
 - [ ] Tiles have large tap targets suitable for small hands
+- [ ] Child grid uses a calm layout: 3 columns portrait / 5 landscape, generous spacing, and uniform icon wells so mixed icon sources look cohesive
 - [ ] Tapping an **app** tile launches that application
 - [ ] Tapping a **website** tile opens the URL in the default browser
 - [ ] Tapping a **YouTube** tile opens the video in a focused embedded player (in-app) or external browser (parent choice)
