@@ -7,6 +7,7 @@ import android.webkit.GeolocationPermissions
 import android.webkit.PermissionRequest
 import android.webkit.WebChromeClient
 import android.webkit.WebResourceRequest
+import android.webkit.WebSettings
 import android.webkit.WebView
 import android.webkit.WebViewClient
 import androidx.activity.ComponentActivity
@@ -14,10 +15,12 @@ import androidx.activity.addCallback
 import androidx.core.view.WindowCompat
 import com.kidspace.launcher.data.model.PermissionPolicy
 import com.kidspace.launcher.util.DomainMatcher
+import com.kidspace.launcher.webview.WebViewPermissionHandler
 
 class WebViewActivity : ComponentActivity() {
 
     private lateinit var webView: WebView
+    private lateinit var permissionHandler: WebViewPermissionHandler
 
     @SuppressLint("SetJavaScriptEnabled")
     override fun onCreate(savedInstanceState: Bundle?) {
@@ -29,10 +32,22 @@ class WebViewActivity : ComponentActivity() {
             finish()
             return
         }
-        val cameraPolicy = intent.getStringExtra(EXTRA_CAMERA_POLICY) ?: PermissionPolicy.GRANT.name
-        val microphonePolicy = intent.getStringExtra(EXTRA_MICROPHONE_POLICY) ?: PermissionPolicy.GRANT.name
-        val locationPolicy = intent.getStringExtra(EXTRA_LOCATION_POLICY) ?: PermissionPolicy.GRANT.name
+        val cameraPolicy = intent.getStringExtra(EXTRA_CAMERA_POLICY)
+            ?.let(PermissionPolicy::valueOf)
+            ?: PermissionPolicy.GRANT
+        val microphonePolicy = intent.getStringExtra(EXTRA_MICROPHONE_POLICY)
+            ?.let(PermissionPolicy::valueOf)
+            ?: PermissionPolicy.GRANT
+        val locationPolicy = intent.getStringExtra(EXTRA_LOCATION_POLICY)
+            ?.let(PermissionPolicy::valueOf)
+            ?: PermissionPolicy.GRANT
         val normalizedUrl = DomainMatcher.normalizeUrl(startUrl)
+
+        permissionHandler = WebViewPermissionHandler(
+            activity = this,
+            cameraPolicy = cameraPolicy,
+            microphonePolicy = microphonePolicy,
+        )
 
         webView = WebView(this).apply {
             layoutParams = ViewGroup.LayoutParams(
@@ -49,6 +64,7 @@ class WebViewActivity : ComponentActivity() {
             settings.loadWithOverviewMode = true
             settings.builtInZoomControls = false
             settings.displayZoomControls = false
+            settings.mixedContentMode = WebSettings.MIXED_CONTENT_COMPATIBILITY_MODE
 
             webViewClient = object : WebViewClient() {
                 override fun shouldOverrideUrlLoading(
@@ -63,27 +79,19 @@ class WebViewActivity : ComponentActivity() {
             webChromeClient = object : WebChromeClient() {
                 override fun onPermissionRequest(request: PermissionRequest?) {
                     request ?: return
-                    val allowed = request.resources.filter { resource ->
-                        when (resource) {
-                            PermissionRequest.RESOURCE_VIDEO_CAPTURE ->
-                                cameraPolicy == PermissionPolicy.GRANT.name
-                            PermissionRequest.RESOURCE_AUDIO_CAPTURE ->
-                                microphonePolicy == PermissionPolicy.GRANT.name
-                            else -> true
-                        }
-                    }.toTypedArray()
-                    if (allowed.isNotEmpty()) {
-                        request.grant(allowed)
-                    } else {
-                        request.deny()
-                    }
+                    permissionHandler.handlePermissionRequest(request)
+                }
+
+                override fun onPermissionRequestCanceled(request: PermissionRequest?) {
+                    request ?: return
+                    permissionHandler.onPermissionRequestCanceled(request)
                 }
 
                 override fun onGeolocationPermissionsShowPrompt(
                     origin: String?,
                     callback: GeolocationPermissions.Callback?,
                 ) {
-                    val allow = locationPolicy == PermissionPolicy.GRANT.name
+                    val allow = locationPolicy == PermissionPolicy.GRANT
                     callback?.invoke(origin, allow, false)
                 }
             }
