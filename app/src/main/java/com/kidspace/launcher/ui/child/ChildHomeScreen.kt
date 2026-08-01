@@ -1,6 +1,7 @@
 package com.kidspace.launcher.ui.child
 
 import androidx.compose.foundation.ExperimentalFoundationApi
+import androidx.compose.foundation.background
 import androidx.compose.foundation.combinedClickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
@@ -31,6 +32,7 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.text.style.TextOverflow
@@ -57,8 +59,9 @@ fun ChildHomeScreen(
     val accent = appearance.accentColor.toComposeColor()
     val configuration = LocalConfiguration.current
     val isLandscape = configuration.orientation == Configuration.ORIENTATION_LANDSCAPE
-    val columnCount = if (isLandscape) 6 else 4
-    val contentPadding = if (isLandscape) 12.dp else 20.dp
+    val columnCount = if (isLandscape) 5 else 3
+    val contentPadding = if (isLandscape) 16.dp else 24.dp
+    val gridSpacing = if (isLandscape) 12.dp else 16.dp
 
     Box(modifier = modifier.fillMaxSize()) {
         ChildBackground(
@@ -81,9 +84,9 @@ fun ChildHomeScreen(
 
             LazyVerticalGrid(
                 columns = GridCells.Fixed(columnCount),
-                contentPadding = PaddingValues(bottom = 16.dp),
-                horizontalArrangement = Arrangement.spacedBy(if (isLandscape) 8.dp else 10.dp),
-                verticalArrangement = Arrangement.spacedBy(if (isLandscape) 8.dp else 10.dp),
+                contentPadding = PaddingValues(bottom = 20.dp),
+                horizontalArrangement = Arrangement.spacedBy(gridSpacing),
+                verticalArrangement = Arrangement.spacedBy(gridSpacing),
                 modifier = Modifier.fillMaxSize(),
             ) {
                 if (tiles.isEmpty()) {
@@ -213,34 +216,41 @@ private fun AppearanceTileCard(
     Card(
         modifier = Modifier
             .aspectRatio(1f)
-            .clip(RoundedCornerShape(16.dp))
+            .clip(RoundedCornerShape(20.dp))
             .combinedClickable(onClick = onClick),
-        shape = RoundedCornerShape(16.dp),
-        colors = CardDefaults.cardColors(containerColor = accent.copy(alpha = 0.9f)),
-        elevation = CardDefaults.cardElevation(defaultElevation = 6.dp),
+        shape = RoundedCornerShape(20.dp),
+        colors = CardDefaults.cardColors(containerColor = accent.copy(alpha = 0.92f)),
+        elevation = CardDefaults.cardElevation(defaultElevation = 4.dp),
     ) {
         Column(
             modifier = Modifier
                 .fillMaxSize()
-                .padding(6.dp),
+                .padding(horizontal = 10.dp, vertical = 12.dp),
             horizontalAlignment = Alignment.CenterHorizontally,
             verticalArrangement = Arrangement.Center,
         ) {
-            Icon(
-                imageVector = Icons.Default.Palette,
-                contentDescription = null,
-                tint = Color.White,
-                modifier = Modifier.fillMaxWidth(0.55f).aspectRatio(1f),
-            )
-            Spacer(modifier = Modifier.height(4.dp))
+            Box(
+                modifier = Modifier
+                    .fillMaxWidth(0.72f)
+                    .aspectRatio(1f),
+                contentAlignment = Alignment.Center,
+            ) {
+                Icon(
+                    imageVector = Icons.Default.Palette,
+                    contentDescription = null,
+                    tint = Color.White,
+                    modifier = Modifier.fillMaxSize(),
+                )
+            }
             Text(
                 text = "My Look",
-                fontSize = 11.sp,
-                fontWeight = FontWeight.Bold,
+                fontSize = 12.sp,
+                fontWeight = FontWeight.SemiBold,
                 color = Color.White,
                 textAlign = TextAlign.Center,
                 maxLines = 2,
-                lineHeight = 13.sp,
+                lineHeight = 14.sp,
+                modifier = Modifier.padding(top = 8.dp),
             )
         }
     }
@@ -256,44 +266,48 @@ private fun ChildTileCard(
     Card(
         modifier = Modifier
             .aspectRatio(1f)
-            .clip(RoundedCornerShape(16.dp))
+            .clip(RoundedCornerShape(20.dp))
             .combinedClickable(onClick = onClick),
-        shape = RoundedCornerShape(16.dp),
-        colors = CardDefaults.cardColors(containerColor = Color.White.copy(alpha = 0.95f)),
-        elevation = CardDefaults.cardElevation(defaultElevation = 6.dp),
+        shape = RoundedCornerShape(20.dp),
+        colors = CardDefaults.cardColors(containerColor = Color.White.copy(alpha = 0.94f)),
+        elevation = CardDefaults.cardElevation(defaultElevation = 4.dp),
     ) {
         Column(
             modifier = Modifier
                 .fillMaxSize()
-                .padding(6.dp),
+                .padding(horizontal = 10.dp, vertical = 12.dp),
             horizontalAlignment = Alignment.CenterHorizontally,
+            verticalArrangement = Arrangement.SpaceBetween,
         ) {
             Box(
                 modifier = Modifier
                     .weight(1f)
-                    .fillMaxWidth()
-                    .clip(RoundedCornerShape(12.dp)),
+                    .fillMaxWidth(0.88f)
+                    .clip(RoundedCornerShape(16.dp))
+                    .background(Color(0xFFF2F5F9)),
                 contentAlignment = Alignment.Center,
             ) {
                 TileIcon(
                     type = tile.type,
                     target = tile.target,
                     iconKey = tile.iconKey,
-                    modifier = Modifier.fillMaxSize(),
+                    modifier = Modifier.fillMaxSize(0.78f),
                     tint = primary,
+                    contentScale = ContentScale.Fit,
                 )
             }
-            Spacer(modifier = Modifier.height(4.dp))
             Text(
                 text = tile.label,
-                fontSize = 11.sp,
-                fontWeight = FontWeight.Bold,
+                fontSize = 12.sp,
+                fontWeight = FontWeight.SemiBold,
                 color = primary,
                 textAlign = TextAlign.Center,
                 maxLines = 2,
                 overflow = TextOverflow.Ellipsis,
-                lineHeight = 13.sp,
-                modifier = Modifier.fillMaxWidth(),
+                lineHeight = 14.sp,
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .padding(top = 8.dp),
             )
         }
     }

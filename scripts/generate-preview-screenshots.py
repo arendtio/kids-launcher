@@ -49,12 +49,24 @@ def draw_sky_meadow_scene(draw):
     draw.pieslice((120, H - 460, W + 120, H + 180), 180, 360, fill=(102, 187, 106))
 
 
-def draw_tile(draw, x, y, size, label, icon_color, glyph):
-    rounded_rect(draw, (x, y, x + size, y + size), 24, (255, 255, 255, 242))
-    pad = 10
-    rounded_rect(draw, (x + pad, y + pad, x + size - pad, y + size - pad - 34), 18, icon_color)
-    draw.text((x + size // 2, y + (size - 34) // 2 + pad), glyph, fill="white", font=font(int(size * 0.28), True), anchor="mm")
-    draw.text((x + size // 2, y + size - 18), label, fill=PRIMARY, font=font(20, True), anchor="mm")
+def draw_tile(draw, x, y, size, label, icon_color, glyph, use_well=True):
+    rounded_rect(draw, (x, y, x + size, y + size), 28, (255, 255, 255, 242))
+    pad = 14
+    label_h = 38
+    icon_area = size - pad * 2 - label_h
+    icon_y = y + pad
+    icon_x = x + (size - icon_area) // 2
+    if use_well:
+        rounded_rect(draw, (icon_x, icon_y, icon_x + icon_area, icon_y + icon_area), 22, (242, 245, 249))
+        inner = int(icon_area * 0.72)
+        inner_x = icon_x + (icon_area - inner) // 2
+        inner_y = icon_y + (icon_area - inner) // 2
+        rounded_rect(draw, (inner_x, inner_y, inner_x + inner, inner_y + inner), 18, icon_color)
+        draw.text((inner_x + inner // 2, inner_y + inner // 2), glyph, fill="white", font=font(int(inner * 0.34), True), anchor="mm")
+    else:
+        rounded_rect(draw, (x + pad, y + pad, x + size - pad, y + size - pad - label_h), 18, icon_color)
+        draw.text((x + size // 2, y + (size - label_h) // 2 + pad), glyph, fill="white", font=font(int(size * 0.22), True), anchor="mm")
+    draw.text((x + size // 2, y + size - 20), label, fill=PRIMARY, font=font(22, True), anchor="mm")
 
 
 def child_home():
@@ -73,12 +85,10 @@ def child_home():
         ("Khan", SECONDARY, "K"),
         ("Stories", ACCENT, "📖"),
         ("Duolingo", PRIMARY, "D"),
-        ("Lego", SECONDARY, "L"),
-        ("Peppa", ACCENT, "🐷"),
-        ("CBeebies", PRIMARY, "C"),
+        ("My Look", ACCENT, "🎨"),
     ]
 
-    cols, gap, margin_x, start_y = 4, 18, 50, 430
+    cols, gap, margin_x, start_y = 3, 24, 56, 430
     tile_size = (W - margin_x * 2 - gap * (cols - 1)) // cols
     for i, (label, color, glyph) in enumerate(tiles):
         col = i % cols
