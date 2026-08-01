@@ -247,13 +247,12 @@ class LauncherViewModel(
         viewModelScope.launch { tileRepository.removeTile(id) }
     }
 
-    fun moveTile(id: Long, newIndex: Int) {
+    fun reorderTiles(fromIndex: Int, toIndex: Int) {
         viewModelScope.launch {
             val current = tiles.value.toMutableList()
-            val oldIndex = current.indexOfFirst { it.id == id }
-            if (oldIndex < 0 || newIndex !in current.indices) return@launch
-            val item = current.removeAt(oldIndex)
-            current.add(newIndex, item)
+            if (fromIndex !in current.indices || toIndex !in current.indices) return@launch
+            val item = current.removeAt(fromIndex)
+            current.add(toIndex, item)
             tileRepository.reorderTiles(current)
         }
     }
