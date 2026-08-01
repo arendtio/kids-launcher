@@ -114,7 +114,7 @@ class MainActivity : ComponentActivity() {
                             onAddLink = viewModel::addLinkTile,
                             onUpdateTile = viewModel::updateTile,
                             onRemoveTile = viewModel::removeTile,
-                            onMoveTile = viewModel::moveTile,
+                            onReorderTiles = viewModel::reorderTiles,
                             onSaveAppearance = viewModel::saveAppearance,
                             onImportCustomBackground = viewModel::importCustomBackground,
                             onClearCustomBackground = viewModel::clearCustomBackground,
