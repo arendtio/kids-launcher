@@ -13,6 +13,12 @@ import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
+import androidx.compose.animation.core.animateDpAsState
+import androidx.compose.foundation.lazy.rememberLazyListState
+import androidx.compose.material.icons.filled.DragHandle
+import androidx.compose.runtime.LaunchedEffect
+import sh.calvin.reorderable.ReorderableItem
+import sh.calvin.reorderable.rememberReorderableLazyListState
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.shape.CircleShape
@@ -90,7 +96,7 @@ fun ParentModeScreen(
     onAddLink: (label: String, url: String, type: TileType, webConfig: WebLinkConfig) -> Unit,
     onUpdateTile: (ChildTile) -> Unit,
     onRemoveTile: (Long) -> Unit,
-    onMoveTile: (Long, Int) -> Unit,
+    onReorderTiles: (fromIndex: Int, toIndex: Int) -> Unit,
     onSaveAppearance: (AppearanceSettings) -> Unit,
     onImportCustomBackground: (android.net.Uri) -> Unit,
     onClearCustomBackground: () -> Unit,
@@ -195,7 +201,7 @@ fun ParentModeScreen(
                     tiles = tiles,
                     onEdit = { editingTile = it },
                     onRemove = onRemoveTile,
-                    onMove = onMoveTile,
+                    onReorder = onReorderTiles,
                 )
                 ParentTab.APPS -> AppsTab(
                     apps = installedApps,
@@ -296,7 +302,7 @@ private fun TilesEditorTab(
     tiles: List<ChildTile>,
     onEdit: (ChildTile) -> Unit,
     onRemove: (Long) -> Unit,
-    onMove: (Long, Int) -> Unit,
+    onReorder: (fromIndex: Int, toIndex: Int) -> Unit,
 ) {
     if (tiles.isEmpty()) {
         Box(modifier = Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
@@ -305,93 +311,102 @@ private fun TilesEditorTab(
         return
     }
 
+    var localTiles by remember { mutableStateOf(tiles) }
+    LaunchedEffect(tiles) {
+        localTiles = tiles
+    }
+
+    val lazyListState = rememberLazyListState()
+    val reorderableState = rememberReorderableLazyListState(lazyListState) { from, to ->
+        localTiles = localTiles.toMutableList().apply {
+            add(to.index, removeAt(from.index))
+        }
+        onReorder(from.index, to.index)
+    }
+
     LazyColumn(
+        state = lazyListState,
         contentPadding = PaddingValues(16.dp),
         verticalArrangement = Arrangement.spacedBy(12.dp),
     ) {
-        items(tiles, key = { it.id }) { tile ->
-            val index = tiles.indexOf(tile)
+        items(localTiles, key = { it.id }) { tile ->
             var showMenu by remember(tile.id) { mutableStateOf(false) }
-            Card(
-                modifier = Modifier.clickable { onEdit(tile) },
-                shape = RoundedCornerShape(16.dp),
-                elevation = CardDefaults.cardElevation(4.dp),
-            ) {
-                Row(
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .padding(12.dp),
-                    verticalAlignment = Alignment.CenterVertically,
+            ReorderableItem(reorderableState, key = tile.id) { isDragging ->
+                val elevation by animateDpAsState(
+                    targetValue = if (isDragging) 8.dp else 4.dp,
+                    label = "tileDragElevation",
+                )
+                Card(
+                    modifier = Modifier.clickable { onEdit(tile) },
+                    shape = RoundedCornerShape(16.dp),
+                    elevation = CardDefaults.cardElevation(elevation),
                 ) {
-                    TileIcon(
-                        type = tile.type,
-                        target = tile.target,
-                        iconKey = tile.iconKey,
-                        size = 48.dp,
-                    )
-                    Column(modifier = Modifier.weight(1f).padding(horizontal = 12.dp)) {
-                        Text(tile.label, fontWeight = FontWeight.Bold)
-                        Text(
-                            tile.target,
-                            fontSize = 12.sp,
-                            color = Color.Gray,
-                            maxLines = 1,
+                    Row(
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .padding(12.dp),
+                        verticalAlignment = Alignment.CenterVertically,
+                    ) {
+                        Icon(
+                            imageVector = Icons.Default.DragHandle,
+                            contentDescription = "Drag to reorder",
+                            tint = Color.Gray,
+                            modifier = Modifier
+                                .padding(end = 4.dp)
+                                .draggableHandle(),
                         )
-                        tilePermissionSummary(tile)?.let { summary ->
+                        TileIcon(
+                            type = tile.type,
+                            target = tile.target,
+                            iconKey = tile.iconKey,
+                            size = 48.dp,
+                        )
+                        Column(modifier = Modifier.weight(1f).padding(horizontal = 12.dp)) {
+                            Text(tile.label, fontWeight = FontWeight.Bold)
                             Text(
-                                summary,
+                                tile.target,
+                                fontSize = 12.sp,
+                                color = Color.Gray,
+                                maxLines = 1,
+                            )
+                            tilePermissionSummary(tile)?.let { summary ->
+                                Text(
+                                    summary,
+                                    fontSize = 11.sp,
+                                    color = Color(0xFF5C6BC0),
+                                    maxLines = 2,
+                                )
+                            }
+                            Text(
+                                "Tap to edit",
                                 fontSize = 11.sp,
-                                color = Color(0xFF5C6BC0),
-                                maxLines = 2,
+                                color = Color(0xFF3949AB),
+                                fontWeight = FontWeight.Medium,
                             )
                         }
-                        Text(
-                            "Tap to edit",
-                            fontSize = 11.sp,
-                            color = Color(0xFF3949AB),
-                            fontWeight = FontWeight.Medium,
-                        )
-                    }
-                    Box {
-                        IconButton(onClick = { showMenu = true }) {
-                            Icon(Icons.Default.MoreVert, "More options")
-                        }
-                        DropdownMenu(
-                            expanded = showMenu,
-                            onDismissRequest = { showMenu = false },
-                        ) {
-                            DropdownMenuItem(
-                                text = { Text("Edit") },
-                                onClick = {
-                                    showMenu = false
-                                    onEdit(tile)
-                                },
-                            )
-                            if (index > 0) {
+                        Box {
+                            IconButton(onClick = { showMenu = true }) {
+                                Icon(Icons.Default.MoreVert, "More options")
+                            }
+                            DropdownMenu(
+                                expanded = showMenu,
+                                onDismissRequest = { showMenu = false },
+                            ) {
                                 DropdownMenuItem(
-                                    text = { Text("Move up") },
+                                    text = { Text("Edit") },
                                     onClick = {
                                         showMenu = false
-                                        onMove(tile.id, index - 1)
+                                        onEdit(tile)
+                                    },
+                                )
+                                DropdownMenuItem(
+                                    text = { Text("Remove", color = Color(0xFFD32F2F)) },
+                                    onClick = {
+                                        showMenu = false
+                                        onRemove(tile.id)
                                     },
                                 )
                             }
-                            if (index < tiles.lastIndex) {
-                                DropdownMenuItem(
-                                    text = { Text("Move down") },
-                                    onClick = {
-                                        showMenu = false
-                                        onMove(tile.id, index + 1)
-                                    },
-                                )
-                            }
-                            DropdownMenuItem(
-                                text = { Text("Remove", color = Color(0xFFD32F2F)) },
-                                onClick = {
-                                    showMenu = false
-                                    onRemove(tile.id)
-                                },
-                            )
                         }
                     }
                 }
