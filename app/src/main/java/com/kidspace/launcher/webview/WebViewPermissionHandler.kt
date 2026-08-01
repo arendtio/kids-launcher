@@ -1,6 +1,5 @@
 package com.kidspace.launcher.webview
 
-import android.Manifest
 import android.content.pm.PackageManager
 import android.webkit.PermissionRequest
 import androidx.activity.ComponentActivity
@@ -8,120 +7,120 @@ import androidx.activity.result.contract.ActivityResultContracts
 import androidx.core.content.ContextCompat
 import com.kidspace.launcher.data.model.PermissionPolicy
 
+/**
+ * Handles [WebChromeClient.onPermissionRequest] for camera/microphone WebRTC.
+ *
+ * Flow (per Android docs and googlesamples/android-PermissionRequest):
+ * 1. Web page calls getUserMedia → onPermissionRequest fires
+ * 2. If Android runtime permission is missing, store the [PermissionRequest] and ask the system
+ * 3. After the user responds, call [PermissionRequest.grant] with the allowed WebView resources
+ *
+ * Never call grant() without the matching Android runtime permission — doing so can break
+ * future permission requests in the same WebView session.
+ */
 class WebViewPermissionHandler(
     private val activity: ComponentActivity,
     private val cameraPolicy: PermissionPolicy,
     private val microphonePolicy: PermissionPolicy,
 ) {
-    private var pendingAction: PendingAction? = null
-
-    private sealed class PendingAction {
-        data class Prepare(val onReady: () -> Unit) : PendingAction()
-        data class WebView(val request: PermissionRequest) : PendingAction()
-    }
+    private var pendingRequest: PermissionRequest? = null
 
     private val permissionLauncher = activity.registerForActivityResult(
         ActivityResultContracts.RequestMultiplePermissions(),
     ) { results ->
-        val action = pendingAction
-        pendingAction = null
-        activity.runOnUiThread {
-            when (action) {
-                is PendingAction.Prepare -> {
-                    if (results.values.all { it }) {
-                        action.onReady()
-                    } else {
-                        action.onReady()
-                    }
-                }
-                is PendingAction.WebView -> {
-                    if (results.values.all { it }) {
-                        grantWebViewResources(action.request)
-                    } else {
-                        action.request.deny()
-                    }
-                }
-                null -> Unit
-            }
-        }
-    }
+        val request = pendingRequest
+        pendingRequest = null
+        if (request == null) return@registerForActivityResult
 
-    fun prepareRuntimePermissions(onReady: () -> Unit) {
-        val androidPermissions = proactiveAndroidPermissions()
-        if (androidPermissions.isEmpty() || androidPermissions.all { isGranted(it) }) {
-            onReady()
-            return
+        activity.runOnUiThread {
+            respondToRequest(request, results)
         }
-        pendingAction = PendingAction.Prepare(onReady)
-        permissionLauncher.launch(androidPermissions.toTypedArray())
     }
 
     fun handlePermissionRequest(request: PermissionRequest) {
         activity.runOnUiThread {
-            val webResources = resourcesAllowedByPolicy(request)
-            if (webResources.isEmpty()) {
-                request.deny()
-                return@runOnUiThread
-            }
-
-            val androidPermissions = androidPermissionsFor(webResources)
-            if (androidPermissions.isEmpty() || androidPermissions.all { isGranted(it) }) {
-                request.grant(webResources)
-                return@runOnUiThread
-            }
-
-            pendingAction = PendingAction.WebView(request)
-            permissionLauncher.launch(androidPermissions.toTypedArray())
+            handlePermissionRequestOnUiThread(request)
         }
     }
 
     fun onPermissionRequestCanceled(request: PermissionRequest) {
-        val action = pendingAction
-        if (action is PendingAction.WebView && action.request == request) {
-            pendingAction = null
+        if (pendingRequest === request) {
+            pendingRequest = null
         }
     }
 
-    private fun proactiveAndroidPermissions(): List<String> {
-        val permissions = linkedSetOf<String>()
-        if (microphonePolicy == PermissionPolicy.GRANT) {
-            permissions.add(Manifest.permission.RECORD_AUDIO)
+    private fun handlePermissionRequestOnUiThread(request: PermissionRequest) {
+        val requested = request.resources ?: emptyArray()
+        val supported = WebViewPermissionLogic.supportedResourcesFrom(requested)
+        if (supported.isEmpty()) {
+            request.deny()
+            return
         }
-        if (cameraPolicy == PermissionPolicy.GRANT) {
-            permissions.add(Manifest.permission.CAMERA)
+
+        val allowedByPolicy = WebViewPermissionLogic.resourcesAllowedByPolicy(
+            supported,
+            cameraPolicy,
+            microphonePolicy,
+        )
+        if (allowedByPolicy.isEmpty()) {
+            request.deny()
+            return
         }
-        return permissions.toList()
+
+        if (!manifestPermissionsDeclared(allowedByPolicy)) {
+            request.deny()
+            return
+        }
+
+        val runtimeNeeded = WebViewPermissionLogic.runtimePermissionsFor(allowedByPolicy)
+            .filter { !isGranted(it) }
+        if (runtimeNeeded.isEmpty()) {
+            request.grant(allowedByPolicy)
+            return
+        }
+
+        pendingRequest?.deny()
+        pendingRequest = request
+        permissionLauncher.launch(runtimeNeeded.toTypedArray())
     }
 
-    private fun resourcesAllowedByPolicy(request: PermissionRequest): Array<String> =
-        request.resources.filter { resource ->
-            when (resource) {
-                PermissionRequest.RESOURCE_VIDEO_CAPTURE ->
-                    cameraPolicy == PermissionPolicy.GRANT
-                PermissionRequest.RESOURCE_AUDIO_CAPTURE ->
-                    microphonePolicy == PermissionPolicy.GRANT
-                else -> true
-            }
-        }.toTypedArray()
-
-    private fun grantWebViewResources(request: PermissionRequest) {
-        val allowed = resourcesAllowedByPolicy(request)
-        if (allowed.isEmpty()) {
+    private fun respondToRequest(
+        request: PermissionRequest,
+        grantResults: Map<String, Boolean>,
+    ) {
+        val requested = request.resources ?: emptyArray()
+        val grantable = WebViewPermissionLogic.grantableResourcesAfterRuntimeResult(
+            requested = requested,
+            cameraPolicy = cameraPolicy,
+            microphonePolicy = microphonePolicy,
+            isGranted = { permission ->
+                grantResults[permission] == true || isGranted(permission)
+            },
+        )
+        if (grantable.isEmpty()) {
             request.deny()
         } else {
-            request.grant(allowed)
+            request.grant(grantable)
         }
     }
 
-    private fun androidPermissionsFor(webResources: Array<String>): List<String> {
-        val permissions = linkedSetOf<String>()
-        if (webResources.contains(PermissionRequest.RESOURCE_AUDIO_CAPTURE)) {
-            permissions.add(Manifest.permission.RECORD_AUDIO)
+    private fun manifestPermissionsDeclared(webResources: Array<String>): Boolean {
+        val declared = declaredManifestPermissions()
+        return webResources.flatMap { WebViewPermissionLogic.manifestPermissionsFor(it) }
+            .distinct()
+            .all { it in declared }
+    }
+
+    private fun declaredManifestPermissions(): Set<String> {
+        return try {
+            val info = activity.packageManager.getPackageInfo(
+                activity.packageName,
+                PackageManager.GET_PERMISSIONS,
+            )
+            info.requestedPermissions?.toSet() ?: emptySet()
+        } catch (_: PackageManager.NameNotFoundException) {
+            emptySet()
         }
-        if (webResources.contains(PermissionRequest.RESOURCE_VIDEO_CAPTURE)) {
-            permissions.add(Manifest.permission.CAMERA)
-        }
-        return permissions.toList()
     }
 
     private fun isGranted(permission: String): Boolean =
