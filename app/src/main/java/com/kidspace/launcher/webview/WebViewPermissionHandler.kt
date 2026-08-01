@@ -13,47 +13,84 @@ class WebViewPermissionHandler(
     private val cameraPolicy: PermissionPolicy,
     private val microphonePolicy: PermissionPolicy,
 ) {
-    private var pendingRequest: PermissionRequest? = null
+    private var pendingAction: PendingAction? = null
+
+    private sealed class PendingAction {
+        data class Prepare(val onReady: () -> Unit) : PendingAction()
+        data class WebView(val request: PermissionRequest) : PendingAction()
+    }
 
     private val permissionLauncher = activity.registerForActivityResult(
         ActivityResultContracts.RequestMultiplePermissions(),
     ) { results ->
-        val request = pendingRequest
-        pendingRequest = null
-        if (request == null) return@registerForActivityResult
-        if (results.values.all { it }) {
-            grantWebViewResources(request)
-        } else {
-            request.deny()
+        val action = pendingAction
+        pendingAction = null
+        activity.runOnUiThread {
+            when (action) {
+                is PendingAction.Prepare -> {
+                    if (results.values.all { it }) {
+                        action.onReady()
+                    } else {
+                        action.onReady()
+                    }
+                }
+                is PendingAction.WebView -> {
+                    if (results.values.all { it }) {
+                        grantWebViewResources(action.request)
+                    } else {
+                        action.request.deny()
+                    }
+                }
+                null -> Unit
+            }
         }
     }
 
-    fun handlePermissionRequest(request: PermissionRequest) {
-        val webResources = resourcesAllowedByPolicy(request)
-        if (webResources.isEmpty()) {
-            request.deny()
+    fun prepareRuntimePermissions(onReady: () -> Unit) {
+        val androidPermissions = proactiveAndroidPermissions()
+        if (androidPermissions.isEmpty() || androidPermissions.all { isGranted(it) }) {
+            onReady()
             return
         }
-
-        val androidPermissions = androidPermissionsFor(webResources)
-        if (androidPermissions.isEmpty()) {
-            request.grant(webResources)
-            return
-        }
-
-        if (androidPermissions.all { isGranted(it) }) {
-            request.grant(webResources)
-            return
-        }
-
-        pendingRequest = request
+        pendingAction = PendingAction.Prepare(onReady)
         permissionLauncher.launch(androidPermissions.toTypedArray())
     }
 
-    fun onPermissionRequestCanceled(request: PermissionRequest) {
-        if (pendingRequest == request) {
-            pendingRequest = null
+    fun handlePermissionRequest(request: PermissionRequest) {
+        activity.runOnUiThread {
+            val webResources = resourcesAllowedByPolicy(request)
+            if (webResources.isEmpty()) {
+                request.deny()
+                return@runOnUiThread
+            }
+
+            val androidPermissions = androidPermissionsFor(webResources)
+            if (androidPermissions.isEmpty() || androidPermissions.all { isGranted(it) }) {
+                request.grant(webResources)
+                return@runOnUiThread
+            }
+
+            pendingAction = PendingAction.WebView(request)
+            permissionLauncher.launch(androidPermissions.toTypedArray())
         }
+    }
+
+    fun onPermissionRequestCanceled(request: PermissionRequest) {
+        val action = pendingAction
+        if (action is PendingAction.WebView && action.request == request) {
+            pendingAction = null
+        }
+    }
+
+    private fun proactiveAndroidPermissions(): List<String> {
+        val permissions = linkedSetOf<String>()
+        if (microphonePolicy == PermissionPolicy.GRANT) {
+            permissions.add(Manifest.permission.RECORD_AUDIO)
+        }
+        if (cameraPolicy == PermissionPolicy.GRANT) {
+            permissions.add(Manifest.permission.CAMERA)
+        }
+        return permissions.toList()
     }
 
     private fun resourcesAllowedByPolicy(request: PermissionRequest): Array<String> =
