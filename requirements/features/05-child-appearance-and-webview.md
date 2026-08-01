@@ -25,5 +25,6 @@ As a parent, I want website links to open in a simple built-in browser without b
 - [ ] Parent configures auto-grant/deny for camera, microphone, and location per link
 - [ ] Permission policies apply to all pages on that domain during the session
 - [ ] WebRTC getUserMedia requests also trigger Android runtime microphone/camera permissions when parent policy allows
+- [ ] Runtime microphone/camera permissions are requested proactively when opening the in-app browser, before the page loads
 - [ ] Uses the system WebView (no extra browser engine bundled)
 - [ ] YouTube links opened in-app use a dedicated embedded player instead of the full YouTube website
