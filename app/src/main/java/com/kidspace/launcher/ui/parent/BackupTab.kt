@@ -136,7 +136,10 @@ fun BackupTab(
                 elevation = CardDefaults.cardElevation(2.dp),
             ) {
                 Column(modifier = Modifier.padding(16.dp)) {
-                    Text("Installed version: $appVersionName", fontWeight = FontWeight.SemiBold)
+                    Text(
+                        "After installing an update, reopen KidSpace. Installed version: $appVersionName",
+                        fontWeight = FontWeight.SemiBold,
+                    )
                     Spacer(modifier = Modifier.height(8.dp))
                     Text("Source: ${AppUpdateConfig.DEBUG_APK_URL}", fontSize = 12.sp, color = Color.Gray)
                 }
