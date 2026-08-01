@@ -21,10 +21,7 @@ import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Add
 import androidx.compose.material.icons.filled.PlayArrow
 import androidx.compose.material.icons.filled.Remove
-import androidx.compose.material.icons.filled.ArrowDownward
-import androidx.compose.material.icons.filled.ArrowUpward
-import androidx.compose.material.icons.filled.Delete
-import androidx.compose.material.icons.filled.Edit
+import androidx.compose.material.icons.filled.MoreVert
 import androidx.compose.material.icons.filled.ExitToApp
 import androidx.compose.material.icons.filled.Palette
 import androidx.compose.material.icons.filled.Apps
@@ -34,6 +31,8 @@ import androidx.compose.material.icons.filled.VideoLibrary
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material3.AlertDialog
+import androidx.compose.material3.DropdownMenu
+import androidx.compose.material3.DropdownMenuItem
 import androidx.compose.material3.Switch
 import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
@@ -312,7 +311,9 @@ private fun TilesEditorTab(
     ) {
         items(tiles, key = { it.id }) { tile ->
             val index = tiles.indexOf(tile)
+            var showMenu by remember(tile.id) { mutableStateOf(false) }
             Card(
+                modifier = Modifier.clickable { onEdit(tile) },
                 shape = RoundedCornerShape(16.dp),
                 elevation = CardDefaults.cardElevation(4.dp),
             ) {
@@ -344,24 +345,54 @@ private fun TilesEditorTab(
                                 maxLines = 2,
                             )
                         }
+                        Text(
+                            "Tap to edit",
+                            fontSize = 11.sp,
+                            color = Color(0xFF3949AB),
+                            fontWeight = FontWeight.Medium,
+                        )
                     }
-                    IconButton(onClick = { onEdit(tile) }) {
-                        Icon(Icons.Default.Edit, "Edit", tint = Color(0xFF3949AB))
-                    }
-                    IconButton(
-                        onClick = { if (index > 0) onMove(tile.id, index - 1) },
-                        enabled = index > 0,
-                    ) {
-                        Icon(Icons.Default.ArrowUpward, "Move up")
-                    }
-                    IconButton(
-                        onClick = { if (index < tiles.lastIndex) onMove(tile.id, index + 1) },
-                        enabled = index < tiles.lastIndex,
-                    ) {
-                        Icon(Icons.Default.ArrowDownward, "Move down")
-                    }
-                    IconButton(onClick = { onRemove(tile.id) }) {
-                        Icon(Icons.Default.Delete, "Remove", tint = Color(0xFFD32F2F))
+                    Box {
+                        IconButton(onClick = { showMenu = true }) {
+                            Icon(Icons.Default.MoreVert, "More options")
+                        }
+                        DropdownMenu(
+                            expanded = showMenu,
+                            onDismissRequest = { showMenu = false },
+                        ) {
+                            DropdownMenuItem(
+                                text = { Text("Edit") },
+                                onClick = {
+                                    showMenu = false
+                                    onEdit(tile)
+                                },
+                            )
+                            if (index > 0) {
+                                DropdownMenuItem(
+                                    text = { Text("Move up") },
+                                    onClick = {
+                                        showMenu = false
+                                        onMove(tile.id, index - 1)
+                                    },
+                                )
+                            }
+                            if (index < tiles.lastIndex) {
+                                DropdownMenuItem(
+                                    text = { Text("Move down") },
+                                    onClick = {
+                                        showMenu = false
+                                        onMove(tile.id, index + 1)
+                                    },
+                                )
+                            }
+                            DropdownMenuItem(
+                                text = { Text("Remove", color = Color(0xFFD32F2F)) },
+                                onClick = {
+                                    showMenu = false
+                                    onRemove(tile.id)
+                                },
+                            )
+                        }
                     }
                 }
             }
