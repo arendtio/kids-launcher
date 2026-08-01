@@ -116,9 +116,7 @@ class WebViewActivity : ComponentActivity() {
         if (savedInstanceState != null) {
             webView.restoreState(savedInstanceState)
         } else {
-            permissionHandler.prepareRuntimePermissions {
-                webView.loadUrl(normalizedUrl)
-            }
+            webView.loadUrl(normalizedUrl)
         }
     }
 
