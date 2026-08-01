@@ -24,6 +24,7 @@ import androidx.compose.material.icons.filled.Remove
 import androidx.compose.material.icons.filled.ArrowDownward
 import androidx.compose.material.icons.filled.ArrowUpward
 import androidx.compose.material.icons.filled.Delete
+import androidx.compose.material.icons.filled.Edit
 import androidx.compose.material.icons.filled.ExitToApp
 import androidx.compose.material.icons.filled.Palette
 import androidx.compose.material.icons.filled.Apps
@@ -88,6 +89,7 @@ fun ParentModeScreen(
     onRemoveApp: (InstalledApp) -> Unit,
     onLaunchApp: (InstalledApp) -> Unit,
     onAddLink: (label: String, url: String, type: TileType, webConfig: WebLinkConfig) -> Unit,
+    onUpdateTile: (ChildTile) -> Unit,
     onRemoveTile: (Long) -> Unit,
     onMoveTile: (Long, Int) -> Unit,
     onSaveAppearance: (AppearanceSettings) -> Unit,
@@ -124,6 +126,7 @@ fun ParentModeScreen(
 ) {
     var selectedTab by remember { mutableIntStateOf(ParentTab.TILES.ordinal) }
     var showAddLinkDialog by remember { mutableStateOf(false) }
+    var editingTile by remember { mutableStateOf<ChildTile?>(null) }
 
     Scaffold(
         modifier = modifier.fillMaxSize(),
@@ -191,6 +194,7 @@ fun ParentModeScreen(
             when (ParentTab.entries[selectedTab]) {
                 ParentTab.TILES -> TilesEditorTab(
                     tiles = tiles,
+                    onEdit = { editingTile = it },
                     onRemove = onRemoveTile,
                     onMove = onMoveTile,
                 )
@@ -247,7 +251,7 @@ fun ParentModeScreen(
     }
 
     if (showAddLinkDialog) {
-        AddLinkDialog(
+        LinkTileDialog(
             onDismiss = { showAddLinkDialog = false },
             onConfirm = { label, url, type, webConfig ->
                 onAddLink(label, url, type, webConfig)
@@ -255,11 +259,43 @@ fun ParentModeScreen(
             },
         )
     }
+
+    editingTile?.let { tile ->
+        when (tile.type) {
+            TileType.APP -> AppTileEditDialog(
+                tile = tile,
+                onDismiss = { editingTile = null },
+                onConfirm = { updated ->
+                    onUpdateTile(updated)
+                    editingTile = null
+                },
+            )
+            TileType.WEBSITE, TileType.YOUTUBE -> LinkTileDialog(
+                existingTile = tile,
+                onDismiss = { editingTile = null },
+                onConfirm = { label, url, type, webConfig ->
+                    onUpdateTile(
+                        tile.copy(
+                            label = label,
+                            target = url,
+                            type = type,
+                            webLaunchMode = webConfig.webLaunchMode,
+                            cameraPolicy = webConfig.cameraPolicy,
+                            microphonePolicy = webConfig.microphonePolicy,
+                            locationPolicy = webConfig.locationPolicy,
+                        ),
+                    )
+                    editingTile = null
+                },
+            )
+        }
+    }
 }
 
 @Composable
 private fun TilesEditorTab(
     tiles: List<ChildTile>,
+    onEdit: (ChildTile) -> Unit,
     onRemove: (Long) -> Unit,
     onMove: (Long, Int) -> Unit,
 ) {
@@ -300,6 +336,17 @@ private fun TilesEditorTab(
                             color = Color.Gray,
                             maxLines = 1,
                         )
+                        tilePermissionSummary(tile)?.let { summary ->
+                            Text(
+                                summary,
+                                fontSize = 11.sp,
+                                color = Color(0xFF5C6BC0),
+                                maxLines = 2,
+                            )
+                        }
+                    }
+                    IconButton(onClick = { onEdit(tile) }) {
+                        Icon(Icons.Default.Edit, "Edit", tint = Color(0xFF3949AB))
                     }
                     IconButton(
                         onClick = { if (index > 0) onMove(tile.id, index - 1) },
@@ -391,29 +438,114 @@ private fun AppsTab(
 }
 
 @Composable
-private fun AddLinkDialog(
+private fun AppTileEditDialog(
+    tile: ChildTile,
     onDismiss: () -> Unit,
-    onConfirm: (label: String, url: String, type: TileType, webConfig: WebLinkConfig) -> Unit,
+    onConfirm: (ChildTile) -> Unit,
 ) {
-    var label by remember { mutableStateOf("") }
-    var url by remember { mutableStateOf("") }
-    var linkType by remember { mutableIntStateOf(0) }
-    var useInAppBrowser by remember { mutableStateOf(true) }
-    var grantCamera by remember { mutableStateOf(true) }
-    var grantMicrophone by remember { mutableStateOf(true) }
-    var grantLocation by remember { mutableStateOf(false) }
+    var label by remember(tile.id) { mutableStateOf(tile.label) }
     var error by remember { mutableStateOf<String?>(null) }
 
     AlertDialog(
         onDismissRequest = onDismiss,
-        title = { Text("Add Link") },
+        title = { Text("Edit App") },
+        text = {
+            Column {
+                Text(
+                    tile.target,
+                    fontSize = 12.sp,
+                    color = Color.Gray,
+                )
+                Spacer(modifier = Modifier.height(12.dp))
+                OutlinedTextField(
+                    value = label,
+                    onValueChange = { label = it },
+                    label = { Text("Name on child screen") },
+                    modifier = Modifier.fillMaxWidth(),
+                    singleLine = true,
+                )
+                if (error != null) {
+                    Text(error!!, color = Color.Red, fontSize = 12.sp)
+                }
+            }
+        },
+        confirmButton = {
+            TextButton(onClick = {
+                if (label.isBlank()) {
+                    error = "Please enter a name"
+                    return@TextButton
+                }
+                onConfirm(tile.copy(label = label.trim()))
+            }) {
+                Text("Save")
+            }
+        },
+        dismissButton = {
+            TextButton(onClick = onDismiss) { Text("Cancel") }
+        },
+    )
+}
+
+private fun tilePermissionSummary(tile: ChildTile): String? {
+    if (tile.type == TileType.APP) return null
+    val parts = mutableListOf<String>()
+    parts += if (tile.webLaunchMode == WebLaunchMode.IN_APP) "In-app browser" else "External browser"
+    if (tile.webLaunchMode == WebLaunchMode.IN_APP) {
+        val perms = buildList {
+            if (tile.cameraPolicy == PermissionPolicy.GRANT) add("camera")
+            if (tile.microphonePolicy == PermissionPolicy.GRANT) add("mic")
+            if (tile.locationPolicy == PermissionPolicy.GRANT) add("location")
+        }
+        parts += if (perms.isEmpty()) "No auto-permissions" else "Allows: ${perms.joinToString(", ")}"
+    }
+    return parts.joinToString(" · ")
+}
+
+@Composable
+private fun LinkTileDialog(
+    existingTile: ChildTile? = null,
+    onDismiss: () -> Unit,
+    onConfirm: (label: String, url: String, type: TileType, webConfig: WebLinkConfig) -> Unit,
+) {
+    val isEditing = existingTile != null
+    var label by remember(existingTile?.id) { mutableStateOf(existingTile?.label ?: "") }
+    var url by remember(existingTile?.id) { mutableStateOf(existingTile?.target ?: "") }
+    var linkType by remember(existingTile?.id) {
+        mutableIntStateOf(if (existingTile?.type == TileType.YOUTUBE) 1 else 0)
+    }
+    var useInAppBrowser by remember(existingTile?.id) {
+        mutableStateOf(existingTile?.webLaunchMode != WebLaunchMode.EXTERNAL)
+    }
+    var grantCamera by remember(existingTile?.id) {
+        mutableStateOf(existingTile?.cameraPolicy != PermissionPolicy.DENY)
+    }
+    var grantMicrophone by remember(existingTile?.id) {
+        mutableStateOf(existingTile?.microphonePolicy != PermissionPolicy.DENY)
+    }
+    var grantLocation by remember(existingTile?.id) {
+        mutableStateOf(existingTile?.locationPolicy == PermissionPolicy.GRANT)
+    }
+    var error by remember { mutableStateOf<String?>(null) }
+
+    AlertDialog(
+        onDismissRequest = onDismiss,
+        title = { Text(if (isEditing) "Edit Link" else "Add Link") },
         text = {
             Column(modifier = Modifier.verticalScroll(rememberScrollState())) {
-                TabRow(selectedTabIndex = linkType) {
-                    Tab(selected = linkType == 0, onClick = { linkType = 0 }, text = { Text("Website") })
-                    Tab(selected = linkType == 1, onClick = { linkType = 1 }, text = { Text("YouTube") })
+                if (!isEditing) {
+                    TabRow(selectedTabIndex = linkType) {
+                        Tab(selected = linkType == 0, onClick = { linkType = 0 }, text = { Text("Website") })
+                        Tab(selected = linkType == 1, onClick = { linkType = 1 }, text = { Text("YouTube") })
+                    }
+                    Spacer(modifier = Modifier.height(12.dp))
+                } else {
+                    Text(
+                        if (existingTile?.type == TileType.YOUTUBE) "YouTube video" else "Website",
+                        fontWeight = FontWeight.SemiBold,
+                        fontSize = 14.sp,
+                    )
+                    Spacer(modifier = Modifier.height(8.dp))
                 }
-                Spacer(modifier = Modifier.height(12.dp))
                 OutlinedTextField(
                     value = label,
                     onValueChange = { label = it },
@@ -425,7 +557,7 @@ private fun AddLinkDialog(
                 OutlinedTextField(
                     value = url,
                     onValueChange = { url = it },
-                    label = { Text(if (linkType == 1) "YouTube URL" else "Website URL") },
+                    label = { Text(if (linkType == 1 || existingTile?.type == TileType.YOUTUBE) "YouTube URL" else "Website URL") },
                     modifier = Modifier.fillMaxWidth(),
                     singleLine = true,
                 )
@@ -463,10 +595,10 @@ private fun AddLinkDialog(
                     error = "Please enter a valid URL"
                     return@TextButton
                 }
-                val type = if (linkType == 1 || UrlValidator.isYouTubeUrl(url)) {
-                    TileType.YOUTUBE
-                } else {
-                    TileType.WEBSITE
+                val type = when {
+                    isEditing -> existingTile!!.type
+                    linkType == 1 || UrlValidator.isYouTubeUrl(url) -> TileType.YOUTUBE
+                    else -> TileType.WEBSITE
                 }
                 val webConfig = WebLinkConfig(
                     webLaunchMode = if (useInAppBrowser) WebLaunchMode.IN_APP else WebLaunchMode.EXTERNAL,
@@ -476,7 +608,7 @@ private fun AddLinkDialog(
                 )
                 onConfirm(label.trim(), url.trim(), type, webConfig)
             }) {
-                Text("Add")
+                Text(if (isEditing) "Save" else "Add")
             }
         },
         dismissButton = {

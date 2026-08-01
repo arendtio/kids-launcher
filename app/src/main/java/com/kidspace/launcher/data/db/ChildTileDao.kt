@@ -75,4 +75,10 @@ interface ChildTileDao {
 
     @Query("SELECT COALESCE(MAX(sortOrder), -1) FROM child_tiles")
     suspend fun maxSortOrder(): Int
+
+    @Query("UPDATE child_tiles SET sortOrder = sortOrder + 1")
+    suspend fun incrementAllSortOrders()
+
+    @Query("UPDATE child_tiles SET sortOrder = sortOrder + :count")
+    suspend fun incrementAllSortOrdersBy(count: Int)
 }

@@ -231,6 +231,18 @@ class LauncherViewModel(
         }
     }
 
+    fun updateTile(tile: ChildTile) {
+        viewModelScope.launch {
+            val updated = when (tile.type) {
+                TileType.APP -> tile
+                TileType.WEBSITE, TileType.YOUTUBE -> tile.copy(
+                    iconKey = IconKeyGenerator.forUrl(tile.target),
+                )
+            }
+            tileRepository.updateTile(updated)
+        }
+    }
+
     fun removeTile(id: Long) {
         viewModelScope.launch { tileRepository.removeTile(id) }
     }
@@ -376,28 +388,28 @@ class LauncherViewModel(
             val selectedIds = _youtubeSearch.value.selectedVideoIds
             val videos = _youtubeSearch.value.results.filter { it.videoId in selectedIds }
             val webConfig = defaultYouTubeWebConfig()
-            var added = 0
-            videos.forEach { video ->
+            val toAdd = videos.mapNotNull { video ->
                 val exists = tiles.value.any { tile ->
                     tile.type == TileType.YOUTUBE &&
                         YouTubeUtils.extractVideoId(tile.target) == video.videoId
                 }
-                if (!exists) {
-                    tileRepository.addTile(
-                        ChildTile(
-                            type = TileType.YOUTUBE,
-                            label = video.title,
-                            target = video.watchUrl,
-                            iconKey = IconKeyGenerator.forUrl(video.watchUrl),
-                            sortOrder = 0,
-                            webLaunchMode = webConfig.webLaunchMode,
-                            cameraPolicy = webConfig.cameraPolicy,
-                            microphonePolicy = webConfig.microphonePolicy,
-                            locationPolicy = webConfig.locationPolicy,
-                        ),
+                if (exists) null else {
+                    ChildTile(
+                        type = TileType.YOUTUBE,
+                        label = video.title,
+                        target = video.watchUrl,
+                        iconKey = IconKeyGenerator.forUrl(video.watchUrl),
+                        sortOrder = 0,
+                        webLaunchMode = webConfig.webLaunchMode,
+                        cameraPolicy = webConfig.cameraPolicy,
+                        microphonePolicy = webConfig.microphonePolicy,
+                        locationPolicy = webConfig.locationPolicy,
                     )
-                    added++
                 }
+            }
+            val added = toAdd.size
+            if (added > 0) {
+                tileRepository.addTilesAtFront(toAdd)
             }
             _youtubeSearch.value = _youtubeSearch.value.copy(
                 selectedVideoIds = emptySet(),
