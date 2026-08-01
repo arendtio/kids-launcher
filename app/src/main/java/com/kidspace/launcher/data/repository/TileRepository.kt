@@ -12,8 +12,20 @@ class TileRepository(private val dao: ChildTileDao) {
         dao.observeAll().map { entities -> entities.map { it.toModel() } }
 
     suspend fun addTile(tile: ChildTile): Long {
-        val nextOrder = dao.maxSortOrder() + 1
-        return dao.insert(tile.copy(sortOrder = nextOrder).toEntity())
+        dao.incrementAllSortOrders()
+        return dao.insert(tile.copy(sortOrder = 0).toEntity())
+    }
+
+    suspend fun addTilesAtFront(tiles: List<ChildTile>): List<Long> {
+        if (tiles.isEmpty()) return emptyList()
+        dao.incrementAllSortOrdersBy(tiles.size)
+        return tiles.mapIndexed { index, tile ->
+            dao.insert(tile.copy(sortOrder = index).toEntity())
+        }
+    }
+
+    suspend fun updateTile(tile: ChildTile) {
+        dao.update(tile.toEntity())
     }
 
     suspend fun removeTile(id: Long) = dao.deleteById(id)

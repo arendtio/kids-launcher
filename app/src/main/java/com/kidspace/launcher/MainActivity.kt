@@ -112,6 +112,7 @@ class MainActivity : ComponentActivity() {
                                 LauncherActions.launchApp(this@MainActivity, app.packageName)
                             },
                             onAddLink = viewModel::addLinkTile,
+                            onUpdateTile = viewModel::updateTile,
                             onRemoveTile = viewModel::removeTile,
                             onMoveTile = viewModel::moveTile,
                             onSaveAppearance = viewModel::saveAppearance,
