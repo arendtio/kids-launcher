@@ -28,7 +28,7 @@ import androidx.compose.material.icons.filled.Add
 import androidx.compose.material.icons.filled.PlayArrow
 import androidx.compose.material.icons.filled.Remove
 import androidx.compose.material.icons.filled.MoreVert
-import androidx.compose.material.icons.filled.ExitToApp
+import androidx.compose.material.icons.automirrored.filled.ExitToApp
 import androidx.compose.material.icons.filled.Palette
 import androidx.compose.material.icons.filled.Apps
 import androidx.compose.material.icons.filled.Dashboard
@@ -140,7 +140,7 @@ fun ParentModeScreen(
                 title = { Text("Parent Mode", fontWeight = FontWeight.Bold) },
                 actions = {
                     IconButton(onClick = onExitParentMode) {
-                        Icon(Icons.Default.ExitToApp, contentDescription = "Exit")
+                        Icon(Icons.AutoMirrored.Filled.ExitToApp, contentDescription = "Exit")
                     }
                 },
                 colors = TopAppBarDefaults.topAppBarColors(
