@@ -32,6 +32,7 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.text.style.TextOverflow
@@ -265,6 +266,7 @@ private fun ChildTileCard(
     Box(
         modifier = Modifier
             .aspectRatio(1f)
+            .graphicsLayer { clip = true }
             .clip(RoundedCornerShape(20.dp))
             .background(Color.White.copy(alpha = 0.94f))
             .combinedClickable(onClick = onClick),

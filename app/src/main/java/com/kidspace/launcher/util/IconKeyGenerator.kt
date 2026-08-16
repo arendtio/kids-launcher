@@ -27,7 +27,10 @@ object IconKeyGenerator {
 
     fun youtubeThumbnailUrl(iconKey: String): String? {
         if (!iconKey.startsWith("youtube:")) return null
-        return YouTubeUtils.thumbnailUrl(iconKey.removePrefix("youtube:"))
+        return YouTubeUtils.thumbnailUrl(
+            videoId = iconKey.removePrefix("youtube:"),
+            quality = YouTubeUtils.ThumbnailQuality.MEDIUM,
+        )
     }
 
     fun randomFor(seed: String): String {

@@ -156,6 +156,7 @@ object YouTubeUtils {
     private fun isValidVideoId(candidate: String): Boolean = videoIdPattern.matches(candidate)
 
     enum class ThumbnailQuality(val fileName: String) {
+        MEDIUM("mqdefault.jpg"),
         HIGH("hqdefault.jpg"),
         MAX("maxresdefault.jpg"),
     }

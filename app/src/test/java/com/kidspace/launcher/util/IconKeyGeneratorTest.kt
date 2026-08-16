@@ -24,7 +24,7 @@ class IconKeyGeneratorTest {
     @Test
     fun `youtubeThumbnailUrl resolves icon key`() {
         assertEquals(
-            "https://img.youtube.com/vi/dQw4w9WgXcQ/hqdefault.jpg",
+            "https://img.youtube.com/vi/dQw4w9WgXcQ/mqdefault.jpg",
             IconKeyGenerator.youtubeThumbnailUrl("youtube:dQw4w9WgXcQ"),
         )
     }

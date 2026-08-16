@@ -3,6 +3,7 @@ package com.kidspace.launcher.ui.components
 import android.content.pm.LauncherApps
 import android.graphics.drawable.Drawable
 import android.os.Process
+import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Spacer
@@ -33,10 +34,11 @@ import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
 import coil.compose.AsyncImage
-import coil.compose.SubcomposeAsyncImage
-import coil.request.ImageRequest
+import coil.compose.AsyncImagePainter
+import coil.compose.rememberAsyncImagePainter
 import com.kidspace.launcher.data.model.TileType
 import com.kidspace.launcher.util.IconKeyGenerator
+import com.kidspace.launcher.util.TileIconRequests
 
 /** Corner radius as a fraction of the icon slot (0–100 for [RoundedCornerShape]). */
 private const val RasterIconCornerPercent = 12
@@ -75,7 +77,9 @@ fun TileIcon(
             if (drawable != null) {
                 IconSlot(modifier = iconModifier, roundCorners = false) {
                     AsyncImage(
-                        model = drawable,
+                        model = remember(iconKey, context) {
+                            TileIconRequests.fromData(context, drawable, cacheKey = iconKey)
+                        },
                         contentDescription = null,
                         modifier = Modifier.fillMaxSize(),
                         contentScale = resolvedScale,
@@ -108,7 +112,9 @@ fun TileIcon(
             if (drawable != null) {
                 IconSlot(modifier = iconModifier, roundCorners = false) {
                     AsyncImage(
-                        model = drawable,
+                        model = remember(iconKey, context) {
+                            TileIconRequests.fromData(context, drawable, cacheKey = iconKey)
+                        },
                         contentDescription = null,
                         modifier = Modifier.fillMaxSize(),
                         contentScale = resolvedScale,
@@ -156,30 +162,27 @@ private fun RemoteRasterIcon(
     tint: Color,
 ) {
     val context = LocalContext.current
-    val request = remember(url, context) {
-        ImageRequest.Builder(context)
-            .data(url)
-            .crossfade(false)
-            .build()
-    }
-    IconSlot(modifier = iconModifier, roundCorners = roundCorners) {
-        SubcomposeAsyncImage(
-            model = request,
-            contentDescription = null,
-            modifier = Modifier.fillMaxSize(),
-            contentScale = contentScale,
-            loading = {
-                Spacer(modifier = Modifier.fillMaxSize())
-            },
-            error = {
-                FallbackIcon(
-                    iconKey = fallbackKey,
+    val request = remember(url, context) { TileIconRequests.fromUrl(context, url) }
+    val painter = rememberAsyncImagePainter(model = request)
+    when (painter.state) {
+        is AsyncImagePainter.State.Error -> {
+            FallbackIcon(fallbackKey, iconModifier, size, tint)
+        }
+        is AsyncImagePainter.State.Success -> {
+            IconSlot(modifier = iconModifier, roundCorners = roundCorners) {
+                Image(
+                    painter = painter,
+                    contentDescription = null,
                     modifier = Modifier.fillMaxSize(),
-                    size = size,
-                    tint = tint,
+                    contentScale = contentScale,
                 )
-            },
-        )
+            }
+        }
+        else -> {
+            IconSlot(modifier = iconModifier, roundCorners = roundCorners) {
+                Spacer(modifier = Modifier.fillMaxSize())
+            }
+        }
     }
 }
 
