@@ -21,6 +21,7 @@ import com.kidspace.launcher.webview.WebViewDownloadHandler
 import com.kidspace.launcher.webview.WebViewFileChooserHandler
 import com.kidspace.launcher.webview.WebViewFullscreenHandler
 import com.kidspace.launcher.webview.WebViewGeolocationHandler
+import com.kidspace.launcher.webview.WebViewHostResumeGate
 import com.kidspace.launcher.webview.WebViewJsDialogHandler
 import com.kidspace.launcher.webview.WebViewPermissionHandler
 
@@ -34,6 +35,7 @@ class WebViewActivity : ComponentActivity() {
     private lateinit var downloadHandler: WebViewDownloadHandler
     private lateinit var fullscreenHandler: WebViewFullscreenHandler
     private lateinit var jsDialogHandler: WebViewJsDialogHandler
+    private lateinit var hostResumeGate: WebViewHostResumeGate
 
     @SuppressLint("SetJavaScriptEnabled")
     override fun onCreate(savedInstanceState: Bundle?) {
@@ -68,6 +70,7 @@ class WebViewActivity : ComponentActivity() {
             ?: PermissionPolicy.DENY
         val normalizedUrl = DomainMatcher.normalizeUrl(startUrl)
 
+        hostResumeGate = WebViewHostResumeGate { !isFinishing && !isDestroyed }
         permissionHandler = WebViewPermissionHandler(
             activity = this,
             cameraPolicy = cameraPolicy,
@@ -75,6 +78,7 @@ class WebViewActivity : ComponentActivity() {
         )
         fileChooserHandler = WebViewFileChooserHandler(
             activity = this,
+            hostResumeGate = hostResumeGate,
             fileUploadPolicy = fileUploadPolicy,
             cameraCapturePolicy = cameraCapturePolicy,
         )
@@ -86,7 +90,10 @@ class WebViewActivity : ComponentActivity() {
             context = this,
             downloadPolicy = downloadPolicy,
         )
-        jsDialogHandler = WebViewJsDialogHandler(activity = this)
+        jsDialogHandler = WebViewJsDialogHandler(
+            activity = this,
+            hostResumeGate = hostResumeGate,
+        )
 
         rootLayout = FrameLayout(this)
         webView = WebView(this).apply {
@@ -229,9 +236,16 @@ class WebViewActivity : ComponentActivity() {
         if (::webView.isInitialized) {
             webView.onResume()
         }
+        if (::hostResumeGate.isInitialized) {
+            hostResumeGate.markReady()
+            jsDialogHandler.onHostReady()
+        }
     }
 
     override fun onPause() {
+        if (::hostResumeGate.isInitialized) {
+            hostResumeGate.markNotReady()
+        }
         if (::webView.isInitialized) {
             webView.onPause()
         }

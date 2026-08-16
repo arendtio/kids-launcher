@@ -8,35 +8,34 @@ import android.webkit.WebView
 import android.widget.EditText
 import androidx.activity.ComponentActivity
 import androidx.lifecycle.DefaultLifecycleObserver
-import androidx.lifecycle.Lifecycle
 import androidx.lifecycle.LifecycleOwner
 import java.util.concurrent.atomic.AtomicBoolean
 
 /**
  * Handles JavaScript dialog APIs in the in-app browser.
  *
- * Dialogs triggered immediately after the system file picker closes (e.g. `confirm()` in an
- * `<input type="file">` change handler) can arrive before the activity is resumed; those requests
- * are queued and shown on the next resume.
+ * Dialogs triggered from file-picker callbacks must wait until [WebViewHostResumeGate.markReady]
+ * (after [android.webkit.WebView.onResume]) before they can be shown reliably.
  */
 class WebViewJsDialogHandler(
     private val activity: ComponentActivity,
+    private val hostResumeGate: WebViewHostResumeGate,
 ) {
     private var activeDialog: AlertDialog? = null
     private var pendingDialog: PendingDialog? = null
 
     init {
         activity.lifecycle.addObserver(object : DefaultLifecycleObserver {
-            override fun onResume(owner: LifecycleOwner) {
-                flushPendingDialog()
-            }
-
             override fun onDestroy(owner: LifecycleOwner) {
                 dismissActiveDialog()
                 pendingDialog?.cancel()
                 pendingDialog = null
             }
         })
+    }
+
+    fun onHostReady() {
+        activity.runOnUiThread { flushPendingDialog() }
     }
 
     fun onJsAlert(
@@ -111,18 +110,14 @@ class WebViewJsDialogHandler(
     }
 
     private fun flushPendingDialog() {
-        activity.runOnUiThread {
-            val dialog = pendingDialog ?: return@runOnUiThread
-            if (!canShowDialogNow()) return@runOnUiThread
-            pendingDialog = null
-            showDialog(dialog)
-        }
+        val dialog = pendingDialog ?: return
+        if (!canShowDialogNow()) return
+        pendingDialog = null
+        showDialog(dialog)
     }
 
     private fun canShowDialogNow(): Boolean {
-        return activity.lifecycle.currentState.isAtLeast(Lifecycle.State.RESUMED) &&
-            !activity.isFinishing &&
-            !activity.isDestroyed
+        return hostResumeGate.isReady && !activity.isFinishing && !activity.isDestroyed
     }
 
     private fun showDialog(dialog: PendingDialog) {
