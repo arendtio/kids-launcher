@@ -156,8 +156,10 @@ class WebViewJsDialogHandler(
                 builder
                     .setMessage(dialog.message)
                     .setPositiveButton(android.R.string.ok) { _, _ ->
-                        WebViewImportSession.markImportStartedIfRecentFileUpload()
-                        debugTrace?.event("confirm accepted, import guard=${WebViewImportSession.importInFlight}")
+                        WebViewHostSession.onJsConfirmAccepted()
+                        debugTrace?.event(
+                            "confirm accepted, awaiting navigation=${WebViewHostSession.isAwaitingNavigation}",
+                        )
                         dialog.confirm()
                     }
                     .setNegativeButton(android.R.string.cancel) { _, _ -> dialog.cancel() }
@@ -224,7 +226,10 @@ class WebViewJsDialogHandler(
             private val result: JsResult,
         ) : PendingDialog() {
             override fun doConfirm(value: String?) = result.confirm()
-            override fun doCancel() = result.cancel()
+            override fun doCancel() {
+                WebViewHostSession.onJsHandoffCancelled()
+                result.cancel()
+            }
         }
 
         class Prompt(

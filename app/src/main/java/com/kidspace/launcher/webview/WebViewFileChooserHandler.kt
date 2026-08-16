@@ -76,7 +76,7 @@ class WebViewFileChooserHandler(
         if (filePathCallback == null) return false
 
         boundWebView = webView ?: webViewProvider()
-        boundWebView?.let { WebViewUploadSession.bind(it) }
+        boundWebView?.let { WebViewHostSession.bind(it) }
 
         debugTrace?.event(
             "showChooser webView=${boundWebView?.hashCode()} accept=${params?.acceptTypes?.joinToString()} " +
@@ -85,7 +85,7 @@ class WebViewFileChooserHandler(
 
         resolvePreviousCallback()?.onReceiveValue(null)
         pendingCallback = filePathCallback
-        WebViewFileChooserCallbackStore.setPending(filePathCallback)
+        WebViewHostSession.setPendingFileCallback(filePathCallback)
 
         if (WebViewFileChooserLogic.shouldUseCameraCapture(params)) {
             if (!WebViewFileChooserLogic.isCaptureAllowed(cameraCapturePolicy)) {
@@ -115,13 +115,13 @@ class WebViewFileChooserHandler(
     }
 
     fun cancel(force: Boolean = false) {
-        if (!force && WebViewFileChooserCallbackStore.pickerInFlight) {
-            debugTrace?.event("cancel skipped (picker in flight)")
+        if (!force && WebViewHostSession.isExternalUiActive) {
+            debugTrace?.event("cancel skipped (external UI active)")
             pendingCallback = null
             return
         }
-        if (!force && WebViewImportSession.importInFlight) {
-            debugTrace?.event("cancel skipped (import in flight)")
+        if (!force && WebViewHostSession.isAwaitingNavigation) {
+            debugTrace?.event("cancel skipped (awaiting navigation)")
             pendingCallback = null
             return
         }
@@ -184,6 +184,7 @@ class WebViewFileChooserHandler(
 
         if (uris == null) {
             debugTrace?.event("deliverResult null → onReceiveValue(null)")
+            WebViewHostSession.onExternalUiFinished(withFiles = false)
             postToTargetWebView { callback.onReceiveValue(null) }
             return
         }
@@ -196,16 +197,16 @@ class WebViewFileChooserHandler(
         )
         val targetWebView = resolveTargetWebView()
         debugTrace?.event("deliver to webView id=${targetWebView?.hashCode()}")
+        WebViewHostSession.onExternalUiFinished(withFiles = prepared.isNotEmpty())
         postToTargetWebView(targetWebView) {
             callback.onReceiveValue(prepared)
-            WebViewFileChooserCallbackStore.markRecentFileDelivery()
             debugTrace?.event("onReceiveValue called")
             boundWebView = null
         }
     }
 
     private fun resolveTargetWebView(): WebView? {
-        return boundWebView ?: webViewProvider() ?: WebViewUploadSession.activeWebView()
+        return boundWebView ?: webViewProvider() ?: WebViewHostSession.activeWebView()
     }
 
     private fun postToTargetWebView(webView: WebView? = resolveTargetWebView(), action: () -> Unit) {
@@ -219,19 +220,19 @@ class WebViewFileChooserHandler(
     private fun resolvePendingCallback(): ValueCallback<Array<Uri>>? {
         pendingCallback?.let {
             pendingCallback = null
-            WebViewFileChooserCallbackStore.clear()
+            WebViewHostSession.clearPendingFileCallback()
             return it
         }
-        val restored = WebViewFileChooserCallbackStore.take()
+        val restored = WebViewHostSession.takePendingFileCallback()
         if (restored != null) {
-            debugTrace?.event("restored callback from store after activity recreation")
+            debugTrace?.event("restored callback from host session after activity recreation")
         }
         return restored
     }
 
     private fun resolvePreviousCallback(): ValueCallback<Array<Uri>>? {
         pendingCallback?.let { return it }
-        return WebViewFileChooserCallbackStore.peek()
+        return WebViewHostSession.peekPendingFileCallback()
     }
 
     private fun describeUri(context: ComponentActivity, uri: Uri): String {

@@ -33,9 +33,7 @@ import com.kidspace.launcher.webview.WebViewHostResumeGate
 import com.kidspace.launcher.webview.WebViewHostViewModel
 import com.kidspace.launcher.webview.WebViewJsDialogHandler
 import com.kidspace.launcher.webview.WebViewPermissionHandler
-import com.kidspace.launcher.webview.WebViewFileChooserCallbackStore
-import com.kidspace.launcher.webview.WebViewUploadSession
-import com.kidspace.launcher.webview.WebViewImportSession
+import com.kidspace.launcher.webview.WebViewHostSession
 import com.kidspace.launcher.webview.WebViewUploadDebugTrace
 
 class WebViewActivity : ComponentActivity() {
@@ -53,7 +51,7 @@ class WebViewActivity : ComponentActivity() {
     private lateinit var hostResumeGate: WebViewHostResumeGate
     private var uploadDebugTrace: WebViewUploadDebugTrace? = null
     private lateinit var startUrl: String
-    private var restoredFromUploadSession = false
+    private var restoredFromHostSession = false
 
     @SuppressLint("SetJavaScriptEnabled")
     override fun onCreate(savedInstanceState: Bundle?) {
@@ -156,8 +154,8 @@ class WebViewActivity : ComponentActivity() {
         }
 
         when {
-            restoredFromUploadSession || WebViewFileChooserCallbackStore.pickerInFlight -> {
-                uploadDebugTrace?.event("skipped restoreState (upload session active, url=${webView.url})")
+            restoredFromHostSession || WebViewHostSession.shouldSkipRestoreState -> {
+                uploadDebugTrace?.event("skipped restoreState (host session active, url=${webView.url})")
             }
             savedInstanceState != null -> {
                 webView.restoreState(savedInstanceState)
@@ -173,13 +171,13 @@ class WebViewActivity : ComponentActivity() {
 
     @SuppressLint("SetJavaScriptEnabled")
     private fun obtainWebView(): WebView {
-        WebViewUploadSession.activeWebView()?.let { retained ->
+        WebViewHostSession.activeWebView()?.let { retained ->
             viewModel.webView = retained
-            restoredFromUploadSession = true
-            uploadDebugTrace?.event("WebView restored from upload session id=${retained.hashCode()}")
+            restoredFromHostSession = true
+            uploadDebugTrace?.event("WebView restored from host session id=${retained.hashCode()}")
             return retained
         }
-        restoredFromUploadSession = false
+        restoredFromHostSession = false
         viewModel.webView?.let { existing ->
             (existing.parent as? ViewGroup)?.removeView(existing)
             uploadDebugTrace?.event("WebView reused from ViewModel id=${existing.hashCode()}")
@@ -223,9 +221,9 @@ class WebViewActivity : ComponentActivity() {
 
             override fun onPageFinished(view: WebView?, url: String?) {
                 uploadDebugTrace?.event("page finished url=$url")
-                if (WebViewImportSession.importInFlight) {
-                    WebViewImportSession.markImportFinished()
-                    uploadDebugTrace?.event("import guard released after reload")
+                if (WebViewHostSession.isAwaitingNavigation) {
+                    WebViewHostSession.onNavigationFinished()
+                    uploadDebugTrace?.event("host session released after reload")
                 }
             }
         }
@@ -349,15 +347,13 @@ class WebViewActivity : ComponentActivity() {
             fullscreenHandler.cleanup()
         }
         if (::webView.isInitialized) {
-            if (!WebViewImportSession.importInFlight) {
+            if (!WebViewHostSession.isAwaitingNavigation) {
                 webView.stopLoading()
             } else {
-                uploadDebugTrace?.event("stopLoading skipped (import in flight)")
+                uploadDebugTrace?.event("stopLoading skipped (awaiting navigation)")
             }
-            if (WebViewImportSession.shouldRetainWebView() ||
-                WebViewFileChooserCallbackStore.pickerInFlight
-            ) {
-                WebViewUploadSession.retain(webView)
+            if (WebViewHostSession.shouldRetainWebView) {
+                WebViewHostSession.retain(webView)
             } else {
                 (webView.parent as? ViewGroup)?.removeView(webView)
             }
