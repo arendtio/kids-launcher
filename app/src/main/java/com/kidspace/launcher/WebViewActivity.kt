@@ -20,6 +20,7 @@ import android.widget.ScrollView
 import android.widget.TextView
 import androidx.activity.ComponentActivity
 import androidx.activity.addCallback
+import androidx.activity.viewModels
 import androidx.core.view.WindowCompat
 import com.kidspace.launcher.data.model.PermissionPolicy
 import com.kidspace.launcher.util.DomainMatcher
@@ -28,11 +29,14 @@ import com.kidspace.launcher.webview.WebViewFileChooserHandler
 import com.kidspace.launcher.webview.WebViewFullscreenHandler
 import com.kidspace.launcher.webview.WebViewGeolocationHandler
 import com.kidspace.launcher.webview.WebViewHostResumeGate
+import com.kidspace.launcher.webview.WebViewHostViewModel
 import com.kidspace.launcher.webview.WebViewJsDialogHandler
 import com.kidspace.launcher.webview.WebViewPermissionHandler
 import com.kidspace.launcher.webview.WebViewUploadDebugTrace
 
 class WebViewActivity : ComponentActivity() {
+
+    private val viewModel: WebViewHostViewModel by viewModels()
 
     private lateinit var rootLayout: FrameLayout
     private lateinit var webView: WebView
@@ -44,6 +48,7 @@ class WebViewActivity : ComponentActivity() {
     private lateinit var jsDialogHandler: WebViewJsDialogHandler
     private lateinit var hostResumeGate: WebViewHostResumeGate
     private var uploadDebugTrace: WebViewUploadDebugTrace? = null
+    private lateinit var startUrl: String
 
     @SuppressLint("SetJavaScriptEnabled")
     override fun onCreate(savedInstanceState: Bundle?) {
@@ -51,7 +56,7 @@ class WebViewActivity : ComponentActivity() {
 
         WindowCompat.setDecorFitsSystemWindows(window, true)
 
-        val startUrl = intent.getStringExtra(EXTRA_URL) ?: run {
+        startUrl = intent.getStringExtra(EXTRA_URL) ?: run {
             finish()
             return
         }
@@ -110,107 +115,11 @@ class WebViewActivity : ComponentActivity() {
         )
 
         rootLayout = FrameLayout(this)
-        webView = WebView(this).apply {
-            layoutParams = FrameLayout.LayoutParams(
-                ViewGroup.LayoutParams.MATCH_PARENT,
-                ViewGroup.LayoutParams.MATCH_PARENT,
-            )
-
-            settings.javaScriptEnabled = true
-            settings.domStorageEnabled = true
-            settings.allowContentAccess = true
-            settings.mediaPlaybackRequiresUserGesture = false
-            settings.javaScriptCanOpenWindowsAutomatically = true
-            settings.setSupportMultipleWindows(false)
-            settings.useWideViewPort = true
-            settings.loadWithOverviewMode = true
-            settings.builtInZoomControls = false
-            settings.displayZoomControls = false
-            settings.mixedContentMode = WebSettings.MIXED_CONTENT_COMPATIBILITY_MODE
-
-            webViewClient = object : WebViewClient() {
-                override fun shouldOverrideUrlLoading(
-                    view: WebView?,
-                    request: WebResourceRequest?,
-                ): Boolean {
-                    val target = request?.url?.toString() ?: return false
-                    return !DomainMatcher.isAllowedNavigation(startUrl, target)
-                }
-            }
-
-            setDownloadListener { url, userAgent, contentDisposition, mimeType, contentLength ->
-                downloadHandler.onDownloadStart(
-                    url,
-                    userAgent,
-                    contentDisposition,
-                    mimeType,
-                    contentLength,
-                )
-            }
-
-            webChromeClient = object : WebChromeClient() {
-                override fun onPermissionRequest(request: PermissionRequest?) {
-                    request ?: return
-                    permissionHandler.handlePermissionRequest(request)
-                }
-
-                override fun onPermissionRequestCanceled(request: PermissionRequest?) {
-                    request ?: return
-                    permissionHandler.onPermissionRequestCanceled(request)
-                }
-
-                override fun onGeolocationPermissionsShowPrompt(
-                    origin: String?,
-                    callback: android.webkit.GeolocationPermissions.Callback?,
-                ) {
-                    geolocationHandler.onGeolocationPermissionsShowPrompt(origin, callback)
-                }
-
-                override fun onShowFileChooser(
-                    webView: WebView?,
-                    filePathCallback: ValueCallback<Array<Uri>>?,
-                    fileChooserParams: FileChooserParams?,
-                ): Boolean {
-                    return fileChooserHandler.showChooser(filePathCallback, fileChooserParams)
-                }
-
-                override fun onShowCustomView(view: android.view.View?, callback: CustomViewCallback?) {
-                    fullscreenHandler.onShowCustomView(view, callback)
-                }
-
-                override fun onHideCustomView() {
-                    fullscreenHandler.onHideCustomView()
-                }
-
-                override fun onJsAlert(
-                    view: WebView?,
-                    url: String?,
-                    message: String?,
-                    result: android.webkit.JsResult?,
-                ): Boolean = jsDialogHandler.onJsAlert(view, url, message, result)
-
-                override fun onJsConfirm(
-                    view: WebView?,
-                    url: String?,
-                    message: String?,
-                    result: android.webkit.JsResult?,
-                ): Boolean = jsDialogHandler.onJsConfirm(view, url, message, result)
-
-                override fun onJsPrompt(
-                    view: WebView?,
-                    url: String?,
-                    message: String?,
-                    defaultValue: String?,
-                    result: android.webkit.JsPromptResult?,
-                ): Boolean = jsDialogHandler.onJsPrompt(view, url, message, defaultValue, result)
-
-                override fun onJsBeforeUnload(
-                    view: WebView?,
-                    url: String?,
-                    message: String?,
-                    result: android.webkit.JsResult?,
-                ): Boolean = jsDialogHandler.onJsBeforeUnload(view, url, message, result)
-            }
+        val reusingWebView = viewModel.webView != null
+        webView = obtainWebView()
+        bindWebViewClients(normalizedUrl)
+        if (reusingWebView) {
+            uploadDebugTrace?.event("WebView reused (activity recreated)")
         }
 
         rootLayout.addView(webView)
@@ -245,8 +154,120 @@ class WebViewActivity : ComponentActivity() {
 
         if (savedInstanceState != null) {
             webView.restoreState(savedInstanceState)
-        } else {
+        } else if (webView.url.isNullOrBlank()) {
             webView.loadUrl(normalizedUrl)
+        } else {
+            uploadDebugTrace?.event("WebView kept loaded at ${webView.url}")
+        }
+    }
+
+    @SuppressLint("SetJavaScriptEnabled")
+    private fun obtainWebView(): WebView {
+        viewModel.webView?.let { existing ->
+            (existing.parent as? ViewGroup)?.removeView(existing)
+            return existing
+        }
+        return WebView(this).apply {
+            layoutParams = FrameLayout.LayoutParams(
+                ViewGroup.LayoutParams.MATCH_PARENT,
+                ViewGroup.LayoutParams.MATCH_PARENT,
+            )
+            settings.javaScriptEnabled = true
+            settings.domStorageEnabled = true
+            settings.allowContentAccess = true
+            settings.mediaPlaybackRequiresUserGesture = false
+            settings.javaScriptCanOpenWindowsAutomatically = true
+            settings.setSupportMultipleWindows(false)
+            settings.useWideViewPort = true
+            settings.loadWithOverviewMode = true
+            settings.builtInZoomControls = false
+            settings.displayZoomControls = false
+            settings.mixedContentMode = WebSettings.MIXED_CONTENT_COMPATIBILITY_MODE
+            viewModel.webView = this
+        }
+    }
+
+    private fun bindWebViewClients(normalizedUrl: String) {
+        webView.webViewClient = object : WebViewClient() {
+            override fun shouldOverrideUrlLoading(
+                view: WebView?,
+                request: WebResourceRequest?,
+            ): Boolean {
+                val target = request?.url?.toString() ?: return false
+                return !DomainMatcher.isAllowedNavigation(startUrl, target)
+            }
+        }
+
+        webView.setDownloadListener { url, userAgent, contentDisposition, mimeType, contentLength ->
+            downloadHandler.onDownloadStart(
+                url,
+                userAgent,
+                contentDisposition,
+                mimeType,
+                contentLength,
+            )
+        }
+
+        webView.webChromeClient = object : WebChromeClient() {
+            override fun onPermissionRequest(request: PermissionRequest?) {
+                request ?: return
+                permissionHandler.handlePermissionRequest(request)
+            }
+
+            override fun onPermissionRequestCanceled(request: PermissionRequest?) {
+                request ?: return
+                permissionHandler.onPermissionRequestCanceled(request)
+            }
+
+            override fun onGeolocationPermissionsShowPrompt(
+                origin: String?,
+                callback: android.webkit.GeolocationPermissions.Callback?,
+            ) {
+                geolocationHandler.onGeolocationPermissionsShowPrompt(origin, callback)
+            }
+
+            override fun onShowFileChooser(
+                webView: WebView?,
+                filePathCallback: ValueCallback<Array<Uri>>?,
+                fileChooserParams: FileChooserParams?,
+            ): Boolean = fileChooserHandler.showChooser(filePathCallback, fileChooserParams)
+
+            override fun onShowCustomView(view: android.view.View?, callback: CustomViewCallback?) {
+                fullscreenHandler.onShowCustomView(view, callback)
+            }
+
+            override fun onHideCustomView() {
+                fullscreenHandler.onHideCustomView()
+            }
+
+            override fun onJsAlert(
+                view: WebView?,
+                url: String?,
+                message: String?,
+                result: android.webkit.JsResult?,
+            ): Boolean = jsDialogHandler.onJsAlert(view, url, message, result)
+
+            override fun onJsConfirm(
+                view: WebView?,
+                url: String?,
+                message: String?,
+                result: android.webkit.JsResult?,
+            ): Boolean = jsDialogHandler.onJsConfirm(view, url, message, result)
+
+            override fun onJsPrompt(
+                view: WebView?,
+                url: String?,
+                message: String?,
+                defaultValue: String?,
+                result: android.webkit.JsPromptResult?,
+            ): Boolean = jsDialogHandler.onJsPrompt(view, url, message, defaultValue, result)
+
+            override fun onJsBeforeUnload(
+                view: WebView?,
+                url: String?,
+                message: String?,
+                result: android.webkit.JsResult?,
+            ): Boolean = jsDialogHandler.onJsBeforeUnload(view, url, message, result)
         }
     }
 
@@ -290,7 +311,7 @@ class WebViewActivity : ComponentActivity() {
         }
         if (::webView.isInitialized) {
             webView.stopLoading()
-            webView.destroy()
+            (webView.parent as? ViewGroup)?.removeView(webView)
         }
         super.onDestroy()
     }

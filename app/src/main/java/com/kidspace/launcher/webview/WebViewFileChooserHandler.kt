@@ -169,10 +169,10 @@ class WebViewFileChooserHandler(
             return
         }
 
-        val prepared = WebViewFileChooserUriAccess.prepareForWebView(activity, uris)
+        val prepared = uris
         prepared.forEach { uri -> grantReadPermission(uri) }
         debugTrace?.event(
-            "deliverResult prepared=${prepared.size} uris=" +
+            "deliverResult uris=" +
                 prepared.joinToString { describeUri(activity, it) },
         )
         callback.onReceiveValue(prepared)
