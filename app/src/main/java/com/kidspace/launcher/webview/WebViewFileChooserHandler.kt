@@ -24,6 +24,7 @@ class WebViewFileChooserHandler(
     private val activity: ComponentActivity,
     private val fileUploadPolicy: PermissionPolicy,
     private val cameraCapturePolicy: PermissionPolicy,
+    private val debugTrace: WebViewUploadDebugTrace? = null,
 ) {
     private var pendingCallback: ValueCallback<Array<Uri>>? = null
     private var pendingCaptureAfterPermission = false
@@ -32,9 +33,15 @@ class WebViewFileChooserHandler(
     private val fileChooserLauncher = activity.registerForActivityResult(
         ActivityResultContracts.StartActivityForResult(),
     ) { result ->
+        debugTrace?.event(
+            "picker result code=${result.resultCode} data=${result.data != null}",
+        )
         val uris = WebChromeClient.FileChooserParams.parseResult(
             result.resultCode,
             result.data,
+        )
+        debugTrace?.event(
+            "parseResult uris=${uris?.size ?: 0} first=${uris?.firstOrNull()?.toString()?.take(80)}",
         )
         deliverResult(uris)
     }
@@ -65,11 +72,17 @@ class WebViewFileChooserHandler(
     ): Boolean {
         if (filePathCallback == null) return false
 
+        debugTrace?.event(
+            "showChooser accept=${params?.acceptTypes?.joinToString()} " +
+                "mode=${params?.mode} policy=$fileUploadPolicy",
+        )
+
         pendingCallback?.onReceiveValue(null)
         pendingCallback = filePathCallback
 
         if (WebViewFileChooserLogic.shouldUseCameraCapture(params)) {
             if (!WebViewFileChooserLogic.isCaptureAllowed(cameraCapturePolicy)) {
+                debugTrace?.event("camera capture denied by policy")
                 deliverResult(null)
                 return true
             }
@@ -85,6 +98,7 @@ class WebViewFileChooserHandler(
         }
 
         if (!WebViewFileChooserLogic.isFileUploadAllowed(fileUploadPolicy)) {
+            debugTrace?.event("file upload denied by policy")
             deliverResult(null)
             return true
         }
@@ -94,6 +108,7 @@ class WebViewFileChooserHandler(
     }
 
     fun cancel() {
+        debugTrace?.event("file chooser cancelled")
         pendingCaptureAfterPermission = false
         photoUri = null
         deliverResult(null)
@@ -101,9 +116,11 @@ class WebViewFileChooserHandler(
 
     private fun launchDocumentPicker(params: WebChromeClient.FileChooserParams?) {
         val intent = params?.createIntent() ?: buildFallbackIntent(params)
+        debugTrace?.event("launch picker action=${intent.action} type=${intent.type}")
         try {
             fileChooserLauncher.launch(intent)
         } catch (_: ActivityNotFoundException) {
+            debugTrace?.event("picker ActivityNotFoundException")
             deliverResult(null)
         }
     }
@@ -135,16 +152,32 @@ class WebViewFileChooserHandler(
     private fun deliverResult(uris: Array<Uri>?) {
         val callback = pendingCallback
         pendingCallback = null
-        if (callback == null) return
+        if (callback == null) {
+            debugTrace?.event("deliverResult skipped (no callback)")
+            return
+        }
 
         if (uris == null) {
+            debugTrace?.event("deliverResult null → onReceiveValue(null)")
             callback.onReceiveValue(null)
             return
         }
 
         val prepared = WebViewFileChooserUriAccess.prepareForWebView(activity, uris)
         prepared.forEach { uri -> grantReadPermission(uri) }
+        debugTrace?.event(
+            "deliverResult prepared=${prepared.size} uris=" +
+                prepared.joinToString { describeUri(activity, it) },
+        )
         callback.onReceiveValue(prepared)
+        debugTrace?.event("onReceiveValue called (immediate)")
+    }
+
+    private fun describeUri(context: ComponentActivity, uri: Uri): String {
+        val size = runCatching {
+            context.contentResolver.openFileDescriptor(uri, "r")?.use { it.statSize } ?: -1L
+        }.getOrDefault(-1L)
+        return "${uri.authority} size=$size"
     }
 
     private fun grantReadPermission(uri: Uri) {

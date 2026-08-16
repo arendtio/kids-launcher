@@ -20,6 +20,7 @@ import java.util.concurrent.atomic.AtomicBoolean
 class WebViewJsDialogHandler(
     private val activity: ComponentActivity,
     private val hostResumeGate: WebViewHostResumeGate,
+    private val debugTrace: WebViewUploadDebugTrace? = null,
 ) {
     private var activeDialog: AlertDialog? = null
     private var pendingDialog: PendingDialog? = null
@@ -56,6 +57,7 @@ class WebViewJsDialogHandler(
         result: JsResult?,
     ): Boolean {
         if (result == null) return false
+        debugTrace?.event("onJsConfirm message=${message?.take(60)}")
         enqueueDialog(PendingDialog.Confirm(message.orEmpty(), result))
         return true
     }
@@ -101,6 +103,7 @@ class WebViewJsDialogHandler(
                 return@runOnUiThread
             }
             if (!canShowDialogNow()) {
+                debugTrace?.event("dialog queued (host not ready)")
                 pendingDialog?.cancel()
                 pendingDialog = dialog
                 return@runOnUiThread
@@ -127,7 +130,10 @@ class WebViewJsDialogHandler(
                 dialog.cancel()
                 return@post
             }
-            activeDialog = buildDialog(dialog).also { it.show() }
+            activeDialog = buildDialog(dialog).also {
+                debugTrace?.event("dialog shown")
+                it.show()
+            }
         }
     }
 
