@@ -226,6 +226,7 @@ class LauncherViewModel(
                     cameraPolicy = webConfig.cameraPolicy,
                     microphonePolicy = webConfig.microphonePolicy,
                     locationPolicy = webConfig.locationPolicy,
+                    fileUploadPolicy = webConfig.fileUploadPolicy,
                 ),
             )
         }
@@ -403,6 +404,7 @@ class LauncherViewModel(
                         cameraPolicy = webConfig.cameraPolicy,
                         microphonePolicy = webConfig.microphonePolicy,
                         locationPolicy = webConfig.locationPolicy,
+                        fileUploadPolicy = webConfig.fileUploadPolicy,
                     )
                 }
             }
@@ -433,6 +435,7 @@ class LauncherViewModel(
         cameraPolicy = PermissionPolicy.GRANT,
         microphonePolicy = PermissionPolicy.GRANT,
         locationPolicy = PermissionPolicy.DENY,
+        fileUploadPolicy = PermissionPolicy.DENY,
     )
 
     fun openChildAppearance() {
