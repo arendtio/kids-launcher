@@ -32,6 +32,8 @@ import com.kidspace.launcher.webview.WebViewHostResumeGate
 import com.kidspace.launcher.webview.WebViewHostViewModel
 import com.kidspace.launcher.webview.WebViewJsDialogHandler
 import com.kidspace.launcher.webview.WebViewPermissionHandler
+import com.kidspace.launcher.webview.WebViewFileChooserCallbackStore
+import com.kidspace.launcher.webview.WebViewUploadSession
 import com.kidspace.launcher.webview.WebViewUploadDebugTrace
 
 class WebViewActivity : ComponentActivity() {
@@ -115,12 +117,8 @@ class WebViewActivity : ComponentActivity() {
         )
 
         rootLayout = FrameLayout(this)
-        val reusingWebView = viewModel.webView != null
         webView = obtainWebView()
         bindWebViewClients(normalizedUrl)
-        if (reusingWebView) {
-            uploadDebugTrace?.event("WebView reused (activity recreated)")
-        }
 
         rootLayout.addView(webView)
         if (uploadDebugEnabled) {
@@ -163,8 +161,14 @@ class WebViewActivity : ComponentActivity() {
 
     @SuppressLint("SetJavaScriptEnabled")
     private fun obtainWebView(): WebView {
+        WebViewUploadSession.consumeRetained()?.let { retained ->
+            viewModel.webView = retained
+            uploadDebugTrace?.event("WebView restored from upload session id=${retained.hashCode()}")
+            return retained
+        }
         viewModel.webView?.let { existing ->
             (existing.parent as? ViewGroup)?.removeView(existing)
+            uploadDebugTrace?.event("WebView reused from ViewModel id=${existing.hashCode()}")
             return existing
         }
         return WebView(this).apply {
@@ -230,7 +234,7 @@ class WebViewActivity : ComponentActivity() {
                 webView: WebView?,
                 filePathCallback: ValueCallback<Array<Uri>>?,
                 fileChooserParams: FileChooserParams?,
-            ): Boolean = fileChooserHandler.showChooser(filePathCallback, fileChooserParams)
+            ): Boolean = fileChooserHandler.showChooser(webView, filePathCallback, fileChooserParams)
 
             override fun onShowCustomView(view: android.view.View?, callback: CustomViewCallback?) {
                 fullscreenHandler.onShowCustomView(view, callback)
@@ -311,7 +315,11 @@ class WebViewActivity : ComponentActivity() {
         }
         if (::webView.isInitialized) {
             webView.stopLoading()
-            (webView.parent as? ViewGroup)?.removeView(webView)
+            if (WebViewFileChooserCallbackStore.pickerInFlight) {
+                WebViewUploadSession.retain(webView)
+            } else {
+                (webView.parent as? ViewGroup)?.removeView(webView)
+            }
         }
         super.onDestroy()
     }

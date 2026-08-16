@@ -7,6 +7,7 @@ import android.content.pm.PackageManager
 import android.net.Uri
 import android.webkit.ValueCallback
 import android.webkit.WebChromeClient
+import android.webkit.WebView
 import androidx.activity.ComponentActivity
 import androidx.activity.result.contract.ActivityResultContracts
 import androidx.core.content.ContextCompat
@@ -28,6 +29,7 @@ class WebViewFileChooserHandler(
     private val debugTrace: WebViewUploadDebugTrace? = null,
 ) {
     private var pendingCallback: ValueCallback<Array<Uri>>? = null
+    private var boundWebView: WebView? = null
     private var pendingCaptureAfterPermission = false
     private var photoUri: Uri? = null
 
@@ -68,13 +70,17 @@ class WebViewFileChooserHandler(
     }
 
     fun showChooser(
+        webView: WebView?,
         filePathCallback: ValueCallback<Array<Uri>>?,
         params: WebChromeClient.FileChooserParams?,
     ): Boolean {
         if (filePathCallback == null) return false
 
+        boundWebView = webView
+        webView?.let { WebViewUploadSession.bind(it) }
+
         debugTrace?.event(
-            "showChooser accept=${params?.acceptTypes?.joinToString()} " +
+            "showChooser webView=${webView?.hashCode()} accept=${params?.acceptTypes?.joinToString()} " +
                 "mode=${params?.mode} policy=$fileUploadPolicy",
         )
 
@@ -165,7 +171,7 @@ class WebViewFileChooserHandler(
 
         if (uris == null) {
             debugTrace?.event("deliverResult null → onReceiveValue(null)")
-            callback.onReceiveValue(null)
+            postToWebView { callback.onReceiveValue(null) }
             return
         }
 
@@ -175,8 +181,21 @@ class WebViewFileChooserHandler(
             "deliverResult uris=" +
                 prepared.joinToString { describeUri(activity, it) },
         )
-        callback.onReceiveValue(prepared)
-        debugTrace?.event("onReceiveValue called (immediate)")
+        val targetWebView = boundWebView ?: WebViewUploadSession.peek()
+        debugTrace?.event("deliver to webView id=${targetWebView?.hashCode()}")
+        postToWebView(targetWebView) {
+            callback.onReceiveValue(prepared)
+            debugTrace?.event("onReceiveValue called")
+            boundWebView = null
+        }
+    }
+
+    private fun postToWebView(webView: WebView? = boundWebView ?: WebViewUploadSession.peek(), action: () -> Unit) {
+        if (webView != null) {
+            webView.post { action() }
+        } else {
+            action()
+        }
     }
 
     private fun resolvePendingCallback(): ValueCallback<Array<Uri>>? {
