@@ -9,9 +9,8 @@ Set `ANDROID_HOME` (default: `$HOME/android-sdk`) and ensure SDK components are 
 ## Build Commands
 
 - `./gradlew assembleDebug` — Build debug APK
-- `./gradlew assembleRelease` — Build signed release APK
-- `cp app/build/outputs/apk/debug/app-debug.apk releases/KidSpace-debug.apk` — Update committed debug APK in `releases/`
-- `cp app/build/outputs/apk/release/app-release.apk releases/KidSpace-release.apk` — Update committed release APK in `releases/`
+- `./gradlew assembleRelease` — Build signed release APK (optional; local use only)
+- `cp app/build/outputs/apk/debug/app-debug.apk releases/KidSpace-debug.apk` — Update committed debug APK in `releases/` (used for testing/debugging)
 
 Signing uses a local gitignored `keystore.properties` or environment variables (`KIDSPACE_KEYSTORE_FILE`, `KIDSPACE_KEYSTORE_PASSWORD`, `KIDSPACE_KEY_ALIAS`, `KIDSPACE_KEY_PASSWORD`). **Never commit keystore files or passwords** — this is a public repository.
 
