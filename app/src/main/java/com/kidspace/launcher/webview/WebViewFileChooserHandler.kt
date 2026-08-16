@@ -10,9 +10,6 @@ import androidx.activity.ComponentActivity
 import androidx.activity.result.contract.ActivityResultContracts
 import androidx.core.content.ContextCompat
 import androidx.core.content.FileProvider
-import androidx.lifecycle.DefaultLifecycleObserver
-import androidx.lifecycle.Lifecycle
-import androidx.lifecycle.LifecycleOwner
 import com.kidspace.launcher.data.model.PermissionPolicy
 import java.io.File
 
@@ -24,6 +21,7 @@ import java.io.File
  */
 class WebViewFileChooserHandler(
     private val activity: ComponentActivity,
+    private val hostResumeGate: WebViewHostResumeGate,
     private val fileUploadPolicy: PermissionPolicy,
     private val cameraCapturePolicy: PermissionPolicy,
 ) {
@@ -137,29 +135,11 @@ class WebViewFileChooserHandler(
         pendingCallback = null
         if (callback == null) return
 
-        // File picker returns before onResume; defer JS callback so confirm() dialogs can show.
-        runWhenResumed {
+        // Activity-result callbacks run before WebView.onResume; defer JS until host is ready.
+        hostResumeGate.runWhenReady {
             activity.window.decorView.post {
                 callback.onReceiveValue(uris)
             }
         }
-    }
-
-    private fun runWhenResumed(action: () -> Unit) {
-        if (activity.lifecycle.currentState.isAtLeast(Lifecycle.State.RESUMED)) {
-            action()
-            return
-        }
-        val observer = object : DefaultLifecycleObserver {
-            override fun onResume(owner: LifecycleOwner) {
-                activity.lifecycle.removeObserver(this)
-                action()
-            }
-
-            override fun onDestroy(owner: LifecycleOwner) {
-                activity.lifecycle.removeObserver(this)
-            }
-        }
-        activity.lifecycle.addObserver(observer)
     }
 }
