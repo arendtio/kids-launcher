@@ -25,6 +25,10 @@ data class ChildTileEntity(
     val cameraPolicy: String = PermissionPolicy.GRANT.name,
     val microphonePolicy: String = PermissionPolicy.GRANT.name,
     val locationPolicy: String = PermissionPolicy.GRANT.name,
+    val fileUploadPolicy: String = PermissionPolicy.DENY.name,
+    val downloadPolicy: String = PermissionPolicy.DENY.name,
+    val fullscreenPolicy: String = PermissionPolicy.GRANT.name,
+    val cameraCapturePolicy: String = PermissionPolicy.DENY.name,
 )
 
 fun ChildTileEntity.toModel() = ChildTile(
@@ -38,6 +42,10 @@ fun ChildTileEntity.toModel() = ChildTile(
     cameraPolicy = PermissionPolicy.valueOf(cameraPolicy),
     microphonePolicy = PermissionPolicy.valueOf(microphonePolicy),
     locationPolicy = PermissionPolicy.valueOf(locationPolicy),
+    fileUploadPolicy = PermissionPolicy.valueOf(fileUploadPolicy),
+    downloadPolicy = PermissionPolicy.valueOf(downloadPolicy),
+    fullscreenPolicy = PermissionPolicy.valueOf(fullscreenPolicy),
+    cameraCapturePolicy = PermissionPolicy.valueOf(cameraCapturePolicy),
 )
 
 fun ChildTile.toEntity() = ChildTileEntity(
@@ -51,6 +59,10 @@ fun ChildTile.toEntity() = ChildTileEntity(
     cameraPolicy = cameraPolicy.name,
     microphonePolicy = microphonePolicy.name,
     locationPolicy = locationPolicy.name,
+    fileUploadPolicy = fileUploadPolicy.name,
+    downloadPolicy = downloadPolicy.name,
+    fullscreenPolicy = fullscreenPolicy.name,
+    cameraCapturePolicy = cameraCapturePolicy.name,
 )
 
 @Dao

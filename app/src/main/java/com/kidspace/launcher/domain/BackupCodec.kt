@@ -41,7 +41,11 @@ object BackupCodec {
                     .put("webLaunchMode", tile.webLaunchMode.name)
                     .put("cameraPolicy", tile.cameraPolicy.name)
                     .put("microphonePolicy", tile.microphonePolicy.name)
-                    .put("locationPolicy", tile.locationPolicy.name),
+                    .put("locationPolicy", tile.locationPolicy.name)
+                    .put("fileUploadPolicy", tile.fileUploadPolicy.name)
+                    .put("downloadPolicy", tile.downloadPolicy.name)
+                    .put("fullscreenPolicy", tile.fullscreenPolicy.name)
+                    .put("cameraCapturePolicy", tile.cameraCapturePolicy.name),
             )
         }
         root.put("tiles", tilesArray)
@@ -91,6 +95,14 @@ object BackupCodec {
                         microphonePolicy = item.optString("microphonePolicy", PermissionPolicy.GRANT.name)
                             .let(PermissionPolicy::valueOf),
                         locationPolicy = item.optString("locationPolicy", PermissionPolicy.GRANT.name)
+                            .let(PermissionPolicy::valueOf),
+                        fileUploadPolicy = item.optString("fileUploadPolicy", PermissionPolicy.DENY.name)
+                            .let(PermissionPolicy::valueOf),
+                        downloadPolicy = item.optString("downloadPolicy", PermissionPolicy.DENY.name)
+                            .let(PermissionPolicy::valueOf),
+                        fullscreenPolicy = item.optString("fullscreenPolicy", PermissionPolicy.GRANT.name)
+                            .let(PermissionPolicy::valueOf),
+                        cameraCapturePolicy = item.optString("cameraCapturePolicy", PermissionPolicy.DENY.name)
                             .let(PermissionPolicy::valueOf),
                     ),
                 )

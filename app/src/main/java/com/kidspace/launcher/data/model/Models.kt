@@ -32,6 +32,10 @@ data class ChildTile(
     val cameraPolicy: PermissionPolicy = PermissionPolicy.GRANT,
     val microphonePolicy: PermissionPolicy = PermissionPolicy.GRANT,
     val locationPolicy: PermissionPolicy = PermissionPolicy.GRANT,
+    val fileUploadPolicy: PermissionPolicy = PermissionPolicy.DENY,
+    val downloadPolicy: PermissionPolicy = PermissionPolicy.DENY,
+    val fullscreenPolicy: PermissionPolicy = PermissionPolicy.GRANT,
+    val cameraCapturePolicy: PermissionPolicy = PermissionPolicy.DENY,
 )
 
 data class WebLinkConfig(
@@ -39,6 +43,10 @@ data class WebLinkConfig(
     val cameraPolicy: PermissionPolicy = PermissionPolicy.GRANT,
     val microphonePolicy: PermissionPolicy = PermissionPolicy.GRANT,
     val locationPolicy: PermissionPolicy = PermissionPolicy.DENY,
+    val fileUploadPolicy: PermissionPolicy = PermissionPolicy.DENY,
+    val downloadPolicy: PermissionPolicy = PermissionPolicy.DENY,
+    val fullscreenPolicy: PermissionPolicy = PermissionPolicy.GRANT,
+    val cameraCapturePolicy: PermissionPolicy = PermissionPolicy.DENY,
 )
 
 data class InstalledApp(
