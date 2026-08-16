@@ -34,4 +34,5 @@ As a parent, I want website links to open in a simple built-in browser without b
 - [ ] File downloads use the system DownloadManager when enabled for the link
 - [ ] HTML5 fullscreen video works when enabled for the link (default on)
 - [ ] Media autoplay without user gesture remains enabled
+- [ ] JavaScript `alert`, `confirm`, `prompt`, and before-unload dialogs are shown in the in-app browser
 - [ ] YouTube links opened in-app use a dedicated embedded player instead of the full YouTube website

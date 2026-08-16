@@ -1,5 +1,6 @@
 package com.kidspace.launcher.webview
 
+import android.content.Intent
 import android.Manifest
 import android.content.pm.PackageManager
 import android.net.Uri
@@ -116,6 +117,19 @@ class WebViewFileChooserHandler(
     }
 
     private fun deliverResult(uris: Array<Uri>?) {
+        uris?.forEach { uri ->
+            activity.grantUriPermission(
+                activity.packageName,
+                uri,
+                Intent.FLAG_GRANT_READ_URI_PERMISSION,
+            )
+            runCatching {
+                activity.contentResolver.takePersistableUriPermission(
+                    uri,
+                    Intent.FLAG_GRANT_READ_URI_PERMISSION,
+                )
+            }
+        }
         val callback = pendingCallback
         pendingCallback = null
         callback?.onReceiveValue(uris)
