@@ -3,8 +3,10 @@ package com.kidspace.launcher
 import android.annotation.SuppressLint
 import android.os.Bundle
 import android.view.ViewGroup
+import android.net.Uri
 import android.webkit.GeolocationPermissions
 import android.webkit.PermissionRequest
+import android.webkit.ValueCallback
 import android.webkit.WebChromeClient
 import android.webkit.WebResourceRequest
 import android.webkit.WebSettings
@@ -15,12 +17,14 @@ import androidx.activity.addCallback
 import androidx.core.view.WindowCompat
 import com.kidspace.launcher.data.model.PermissionPolicy
 import com.kidspace.launcher.util.DomainMatcher
+import com.kidspace.launcher.webview.WebViewFileChooserHandler
 import com.kidspace.launcher.webview.WebViewPermissionHandler
 
 class WebViewActivity : ComponentActivity() {
 
     private lateinit var webView: WebView
     private lateinit var permissionHandler: WebViewPermissionHandler
+    private lateinit var fileChooserHandler: WebViewFileChooserHandler
 
     @SuppressLint("SetJavaScriptEnabled")
     override fun onCreate(savedInstanceState: Bundle?) {
@@ -41,12 +45,19 @@ class WebViewActivity : ComponentActivity() {
         val locationPolicy = intent.getStringExtra(EXTRA_LOCATION_POLICY)
             ?.let(PermissionPolicy::valueOf)
             ?: PermissionPolicy.GRANT
+        val fileUploadPolicy = intent.getStringExtra(EXTRA_FILE_UPLOAD_POLICY)
+            ?.let(PermissionPolicy::valueOf)
+            ?: PermissionPolicy.DENY
         val normalizedUrl = DomainMatcher.normalizeUrl(startUrl)
 
         permissionHandler = WebViewPermissionHandler(
             activity = this,
             cameraPolicy = cameraPolicy,
             microphonePolicy = microphonePolicy,
+        )
+        fileChooserHandler = WebViewFileChooserHandler(
+            activity = this,
+            fileUploadPolicy = fileUploadPolicy,
         )
 
         webView = WebView(this).apply {
@@ -93,6 +104,14 @@ class WebViewActivity : ComponentActivity() {
                 ) {
                     val allow = locationPolicy == PermissionPolicy.GRANT
                     callback?.invoke(origin, allow, false)
+                }
+
+                override fun onShowFileChooser(
+                    webView: WebView?,
+                    filePathCallback: ValueCallback<Array<Uri>>?,
+                    fileChooserParams: FileChooserParams?,
+                ): Boolean {
+                    return fileChooserHandler.showChooser(filePathCallback, fileChooserParams)
                 }
             }
         }
@@ -142,6 +161,9 @@ class WebViewActivity : ComponentActivity() {
     }
 
     override fun onDestroy() {
+        if (::fileChooserHandler.isInitialized) {
+            fileChooserHandler.cancel()
+        }
         if (::webView.isInitialized) {
             webView.stopLoading()
             webView.destroy()
@@ -154,5 +176,6 @@ class WebViewActivity : ComponentActivity() {
         const val EXTRA_CAMERA_POLICY = "extra_camera_policy"
         const val EXTRA_MICROPHONE_POLICY = "extra_microphone_policy"
         const val EXTRA_LOCATION_POLICY = "extra_location_policy"
+        const val EXTRA_FILE_UPLOAD_POLICY = "extra_file_upload_policy"
     }
 }

@@ -288,6 +288,7 @@ fun ParentModeScreen(
                             cameraPolicy = webConfig.cameraPolicy,
                             microphonePolicy = webConfig.microphonePolicy,
                             locationPolicy = webConfig.locationPolicy,
+                            fileUploadPolicy = webConfig.fileUploadPolicy,
                         ),
                     )
                     editingTile = null
@@ -541,6 +542,7 @@ private fun tilePermissionSummary(tile: ChildTile): String? {
             if (tile.cameraPolicy == PermissionPolicy.GRANT) add("camera")
             if (tile.microphonePolicy == PermissionPolicy.GRANT) add("mic")
             if (tile.locationPolicy == PermissionPolicy.GRANT) add("location")
+            if (tile.fileUploadPolicy == PermissionPolicy.GRANT) add("file upload")
         }
         parts += if (perms.isEmpty()) "No auto-permissions" else "Allows: ${perms.joinToString(", ")}"
     }
@@ -570,6 +572,9 @@ private fun LinkTileDialog(
     }
     var grantLocation by remember(existingTile?.id) {
         mutableStateOf(existingTile?.locationPolicy == PermissionPolicy.GRANT)
+    }
+    var grantFileUpload by remember(existingTile?.id) {
+        mutableStateOf(existingTile?.fileUploadPolicy == PermissionPolicy.GRANT)
     }
     var error by remember { mutableStateOf<String?>(null) }
 
@@ -625,6 +630,7 @@ private fun LinkTileDialog(
                     PermissionToggleRow("Auto-allow camera", grantCamera) { grantCamera = it }
                     PermissionToggleRow("Auto-allow microphone", grantMicrophone) { grantMicrophone = it }
                     PermissionToggleRow("Auto-allow location", grantLocation) { grantLocation = it }
+                    PermissionToggleRow("Allow file uploads", grantFileUpload) { grantFileUpload = it }
                 }
                 if (error != null) {
                     Text(error!!, color = Color.Red, fontSize = 12.sp)
@@ -651,6 +657,7 @@ private fun LinkTileDialog(
                     cameraPolicy = if (grantCamera) PermissionPolicy.GRANT else PermissionPolicy.DENY,
                     microphonePolicy = if (grantMicrophone) PermissionPolicy.GRANT else PermissionPolicy.DENY,
                     locationPolicy = if (grantLocation) PermissionPolicy.GRANT else PermissionPolicy.DENY,
+                    fileUploadPolicy = if (grantFileUpload) PermissionPolicy.GRANT else PermissionPolicy.DENY,
                 )
                 onConfirm(label.trim(), url.trim(), type, webConfig)
             }) {

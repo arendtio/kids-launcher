@@ -53,6 +53,7 @@ object LauncherActions {
                 putExtra(WebViewActivity.EXTRA_CAMERA_POLICY, tile.cameraPolicy.name)
                 putExtra(WebViewActivity.EXTRA_MICROPHONE_POLICY, tile.microphonePolicy.name)
                 putExtra(WebViewActivity.EXTRA_LOCATION_POLICY, tile.locationPolicy.name)
+                putExtra(WebViewActivity.EXTRA_FILE_UPLOAD_POLICY, tile.fileUploadPolicy.name)
                 addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)
             }
             context.startActivity(intent)
