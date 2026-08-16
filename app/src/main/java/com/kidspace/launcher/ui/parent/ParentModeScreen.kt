@@ -289,6 +289,9 @@ fun ParentModeScreen(
                             microphonePolicy = webConfig.microphonePolicy,
                             locationPolicy = webConfig.locationPolicy,
                             fileUploadPolicy = webConfig.fileUploadPolicy,
+                            downloadPolicy = webConfig.downloadPolicy,
+                            fullscreenPolicy = webConfig.fullscreenPolicy,
+                            cameraCapturePolicy = webConfig.cameraCapturePolicy,
                         ),
                     )
                     editingTile = null
@@ -543,6 +546,9 @@ private fun tilePermissionSummary(tile: ChildTile): String? {
             if (tile.microphonePolicy == PermissionPolicy.GRANT) add("mic")
             if (tile.locationPolicy == PermissionPolicy.GRANT) add("location")
             if (tile.fileUploadPolicy == PermissionPolicy.GRANT) add("file upload")
+            if (tile.cameraCapturePolicy == PermissionPolicy.GRANT) add("camera upload")
+            if (tile.downloadPolicy == PermissionPolicy.GRANT) add("download")
+            if (tile.fullscreenPolicy == PermissionPolicy.DENY) add("no fullscreen")
         }
         parts += if (perms.isEmpty()) "No auto-permissions" else "Allows: ${perms.joinToString(", ")}"
     }
@@ -575,6 +581,15 @@ private fun LinkTileDialog(
     }
     var grantFileUpload by remember(existingTile?.id) {
         mutableStateOf(existingTile?.fileUploadPolicy == PermissionPolicy.GRANT)
+    }
+    var grantCameraCapture by remember(existingTile?.id) {
+        mutableStateOf(existingTile?.cameraCapturePolicy == PermissionPolicy.GRANT)
+    }
+    var grantDownload by remember(existingTile?.id) {
+        mutableStateOf(existingTile?.downloadPolicy == PermissionPolicy.GRANT)
+    }
+    var grantFullscreen by remember(existingTile?.id) {
+        mutableStateOf(existingTile?.fullscreenPolicy != PermissionPolicy.DENY)
     }
     var error by remember { mutableStateOf<String?>(null) }
 
@@ -627,10 +642,15 @@ private fun LinkTileDialog(
                         fontSize = 12.sp,
                         color = Color.Gray,
                     )
-                    PermissionToggleRow("Auto-allow camera", grantCamera) { grantCamera = it }
+                    PermissionToggleRow("Auto-allow camera (video calls)", grantCamera) { grantCamera = it }
                     PermissionToggleRow("Auto-allow microphone", grantMicrophone) { grantMicrophone = it }
                     PermissionToggleRow("Auto-allow location", grantLocation) { grantLocation = it }
+                    PermissionToggleRow("Allow fullscreen video", grantFullscreen) { grantFullscreen = it }
                     PermissionToggleRow("Allow file uploads", grantFileUpload) { grantFileUpload = it }
+                    PermissionToggleRow("Allow camera for photo uploads", grantCameraCapture) {
+                        grantCameraCapture = it
+                    }
+                    PermissionToggleRow("Allow file downloads", grantDownload) { grantDownload = it }
                 }
                 if (error != null) {
                     Text(error!!, color = Color.Red, fontSize = 12.sp)
@@ -658,6 +678,9 @@ private fun LinkTileDialog(
                     microphonePolicy = if (grantMicrophone) PermissionPolicy.GRANT else PermissionPolicy.DENY,
                     locationPolicy = if (grantLocation) PermissionPolicy.GRANT else PermissionPolicy.DENY,
                     fileUploadPolicy = if (grantFileUpload) PermissionPolicy.GRANT else PermissionPolicy.DENY,
+                    downloadPolicy = if (grantDownload) PermissionPolicy.GRANT else PermissionPolicy.DENY,
+                    fullscreenPolicy = if (grantFullscreen) PermissionPolicy.GRANT else PermissionPolicy.DENY,
+                    cameraCapturePolicy = if (grantCameraCapture) PermissionPolicy.GRANT else PermissionPolicy.DENY,
                 )
                 onConfirm(label.trim(), url.trim(), type, webConfig)
             }) {

@@ -22,13 +22,16 @@ As a parent, I want website links to open in a simple built-in browser without b
 - [ ] When adding a website/YouTube link, parent can choose integrated browser vs external browser
 - [ ] Integrated browser shows only the website — no address bar, tabs, or browser UI
 - [ ] Navigation stays on the same domain (including subdomains)
-- [ ] Parent configures auto-grant/deny for camera, microphone, location, and file uploads per link
+- [ ] Parent configures auto-grant/deny per link for: camera (WebRTC), microphone, location, fullscreen video, file uploads, camera photo uploads, and file downloads
 - [ ] Permission policies apply to all pages on that domain during the session
 - [ ] WebRTC getUserMedia requests also trigger Android runtime microphone/camera permissions when parent policy allows
+- [ ] Geolocation requests trigger Android runtime location permissions when parent policy allows
 - [ ] WebView permission handling follows the two-step model: Android runtime permission first, then `PermissionRequest.grant()` in `onPermissionRequest`
 - [ ] Microphone capture requires `RECORD_AUDIO` and `MODIFY_AUDIO_SETTINGS` in the app manifest
 - [ ] Uses the system WebView (no extra browser engine bundled)
 - [ ] `<input type="file">` opens the system file picker when file uploads are allowed for the link
-- [ ] File uploads are denied silently when the parent has not enabled them for the link
-- [ ] YouTube links opened in-app use a dedicated embedded player instead of the full YouTube website
+- [ ] `<input capture>` photo capture uses a separate parent toggle from WebRTC camera and from general file uploads
+- [ ] File downloads use the system DownloadManager when enabled for the link
+- [ ] HTML5 fullscreen video works when enabled for the link (default on)
+- [ ] Media autoplay without user gesture remains enabled
 - [ ] YouTube links opened in-app use a dedicated embedded player instead of the full YouTube website
