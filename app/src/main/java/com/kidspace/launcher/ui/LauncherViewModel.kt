@@ -164,10 +164,14 @@ class LauncherViewModel(
     fun onParentDigit(digit: Int) {
         val current = _parentGate.value
         if (current.enteredDigits.length < current.challenge.expectedDigits.length) {
+            val entered = current.enteredDigits + digit
             _parentGate.value = current.copy(
-                enteredDigits = current.enteredDigits + digit,
+                enteredDigits = entered,
                 errorMessage = null,
             )
+            if (entered.length == current.challenge.expectedDigits.length) {
+                submitParentGate()
+            }
         }
     }
 

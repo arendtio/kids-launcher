@@ -53,7 +53,6 @@ private fun PreviewParentGate() {
         errorMessage = null,
         onDigit = {},
         onBackspace = {},
-        onSubmit = {},
         onCancel = {},
     )
 }
