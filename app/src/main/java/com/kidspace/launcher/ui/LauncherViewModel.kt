@@ -9,10 +9,14 @@ import com.kidspace.launcher.data.model.ChildTile
 import com.kidspace.launcher.data.model.InstalledApp
 import com.kidspace.launcher.data.model.TileType
 import com.kidspace.launcher.data.model.WebLinkConfig
+import android.content.Context
+import com.kidspace.launcher.data.model.ParentSettings
 import com.kidspace.launcher.data.repository.AppearanceRepository
 import com.kidspace.launcher.data.repository.AppRepository
 import com.kidspace.launcher.data.repository.BackupRepository
+import com.kidspace.launcher.data.repository.ParentSettingsRepository
 import com.kidspace.launcher.data.repository.TileRepository
+import com.kidspace.launcher.domain.LauncherActions
 import com.kidspace.launcher.domain.ParentGateChallenge
 import com.kidspace.launcher.shortcuts.ShortcutRefreshBus
 import com.kidspace.launcher.update.AppUpdateRepository
@@ -69,6 +73,7 @@ class LauncherViewModel(
     private val tileRepository: TileRepository,
     private val appRepository: AppRepository,
     private val appearanceRepository: AppearanceRepository,
+    private val parentSettingsRepository: ParentSettingsRepository,
     private val backupRepository: BackupRepository,
     private val appUpdateRepository: AppUpdateRepository,
     private val youtubeSearchRepository: YouTubeSearchRepository,
@@ -79,6 +84,9 @@ class LauncherViewModel(
 
     val appearance: StateFlow<AppearanceSettings> = appearanceRepository.observeSettings()
         .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), AppearanceSettings())
+
+    val parentSettings: StateFlow<ParentSettings> = parentSettingsRepository.observeSettings()
+        .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), ParentSettings())
 
     private val _screen = MutableStateFlow(AppScreen.CHILD)
     val screen: StateFlow<AppScreen> = _screen.asStateFlow()
@@ -338,7 +346,25 @@ class LauncherViewModel(
     }
 
     fun dismissUpdateStatus() {
-        _updateStatus.value = AppUpdateStatus()
+        _updateStatus.value = _updateStatus.value.copy(
+            message = null,
+            isError = false,
+            isDownloading = false,
+        )
+    }
+
+    fun setWebViewUploadDebugEnabled(enabled: Boolean) {
+        viewModelScope.launch {
+            parentSettingsRepository.setWebViewUploadDebugEnabled(enabled)
+        }
+    }
+
+    fun launchTile(context: Context, tile: ChildTile) {
+        LauncherActions.launchTile(
+            context = context,
+            tile = tile,
+            webViewUploadDebugEnabled = parentSettings.value.webViewUploadDebugEnabled,
+        )
     }
 
     fun updateYouTubeQuery(query: String) {
@@ -467,6 +493,7 @@ class LauncherViewModel(
         private val tileRepository: TileRepository,
         private val appRepository: AppRepository,
         private val appearanceRepository: AppearanceRepository,
+        private val parentSettingsRepository: ParentSettingsRepository,
         private val backupRepository: BackupRepository,
         private val appUpdateRepository: AppUpdateRepository,
         private val youtubeSearchRepository: YouTubeSearchRepository,
@@ -477,6 +504,7 @@ class LauncherViewModel(
                 tileRepository,
                 appRepository,
                 appearanceRepository,
+                parentSettingsRepository,
                 backupRepository,
                 appUpdateRepository,
                 youtubeSearchRepository,

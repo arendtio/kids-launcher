@@ -15,8 +15,8 @@ android {
         applicationId = "com.kidspace.launcher"
         minSdk = 26
         targetSdk = 34
-        versionCode = 16
-        versionName = "1.3.10"
+        versionCode = 17
+        versionName = "1.3.11"
         testInstrumentationRunner = "androidx.test.runner.AndroidJUnitRunner"
     }
 

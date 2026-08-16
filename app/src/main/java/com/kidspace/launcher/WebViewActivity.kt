@@ -87,7 +87,7 @@ class WebViewActivity : ComponentActivity() {
             ?.let(PermissionPolicy::valueOf)
             ?: PermissionPolicy.DENY
         val normalizedUrl = DomainMatcher.normalizeUrl(startUrl)
-        val uploadDebugEnabled = fileUploadPolicy == PermissionPolicy.GRANT
+        val uploadDebugEnabled = intent.getBooleanExtra(EXTRA_UPLOAD_DEBUG, false)
         var uploadDebugText: TextView? = null
         uploadDebugTrace = WebViewUploadDebugTrace(uploadDebugEnabled) { text ->
             runOnUiThread { uploadDebugText?.text = text }
@@ -423,5 +423,6 @@ class WebViewActivity : ComponentActivity() {
         const val EXTRA_DOWNLOAD_POLICY = "extra_download_policy"
         const val EXTRA_FULLSCREEN_POLICY = "extra_fullscreen_policy"
         const val EXTRA_CAMERA_CAPTURE_POLICY = "extra_camera_capture_policy"
+        const val EXTRA_UPLOAD_DEBUG = "extra_upload_debug"
     }
 }
