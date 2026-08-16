@@ -9,8 +9,11 @@ Set `ANDROID_HOME` (default: `$HOME/android-sdk`) and ensure SDK components are 
 ## Build Commands
 
 - `./gradlew assembleDebug` — Build debug APK
-- `./gradlew assembleRelease` — Build release APK (unsigned)
+- `./gradlew assembleRelease` — Build signed release APK
 - `cp app/build/outputs/apk/debug/app-debug.apk releases/KidSpace-debug.apk` — Update committed debug APK in `releases/`
+- `cp app/build/outputs/apk/release/app-release.apk releases/KidSpace-release.apk` — Update committed release APK in `releases/`
+
+Signing uses `keystore/kidspace.jks` (see `keystore.properties`).
 
 ## Test Commands
 
