@@ -34,6 +34,7 @@ class MainActivity : ComponentActivity() {
             app.tileRepository,
             app.appRepository,
             app.appearanceRepository,
+            app.parentSettingsRepository,
             app.backupRepository,
             app.appUpdateRepository,
             app.youtubeSearchRepository,
@@ -59,6 +60,7 @@ class MainActivity : ComponentActivity() {
             val installedApps by viewModel.installedApps.collectAsState()
             val backupStatus by viewModel.backupStatus.collectAsState()
             val updateStatus by viewModel.updateStatus.collectAsState()
+            val parentSettings by viewModel.parentSettings.collectAsState()
             val youtubeSearch by viewModel.youtubeSearch.collectAsState()
             val showChildAppearance by viewModel.showChildAppearance.collectAsState()
             val childYouTubeVideoIds = tiles
@@ -83,7 +85,7 @@ class MainActivity : ComponentActivity() {
                                 tiles = tiles,
                                 appearance = appearance,
                                 onTileClick = { tile ->
-                                    LauncherActions.launchTile(this@MainActivity, tile)
+                                    viewModel.launchTile(this@MainActivity, tile)
                                 },
                                 onAppearanceTileClick = viewModel::openChildAppearance,
                                 onParentAccessRequest = viewModel::requestParentAccess,
@@ -141,6 +143,8 @@ class MainActivity : ComponentActivity() {
                                 }
                             },
                             onDismissUpdateStatus = viewModel::dismissUpdateStatus,
+                            webViewUploadDebugEnabled = parentSettings.webViewUploadDebugEnabled,
+                            onWebViewUploadDebugChange = viewModel::setWebViewUploadDebugEnabled,
                             youtubeQuery = youtubeSearch.query,
                             isYouTubeSearching = youtubeSearch.isSearching,
                             youtubeResults = youtubeSearch.results,

@@ -5,6 +5,7 @@ import com.kidspace.launcher.data.db.KidSpaceDatabase
 import com.kidspace.launcher.data.repository.AppearanceRepository
 import com.kidspace.launcher.data.repository.AppRepository
 import com.kidspace.launcher.data.repository.BackupRepository
+import com.kidspace.launcher.data.repository.ParentSettingsRepository
 import com.kidspace.launcher.data.repository.TileRepository
 import com.kidspace.launcher.shortcuts.LegacyShortcutStore
 import com.kidspace.launcher.update.AppUpdateRepository
@@ -16,6 +17,7 @@ class KidSpaceApplication : Application() {
     val appRepository: AppRepository by lazy { AppRepository(this, legacyShortcutStore) }
     val legacyShortcutStore: LegacyShortcutStore by lazy { LegacyShortcutStore(this) }
     val appearanceRepository: AppearanceRepository by lazy { AppearanceRepository(this) }
+    val parentSettingsRepository: ParentSettingsRepository by lazy { ParentSettingsRepository(this) }
     val backupRepository: BackupRepository by lazy {
         BackupRepository(this, tileRepository, appearanceRepository)
     }

@@ -29,10 +29,14 @@ object LauncherActions {
         launchAppInternal(context, target)
     }
 
-    fun launchTile(context: Context, tile: ChildTile) {
+    fun launchTile(
+        context: Context,
+        tile: ChildTile,
+        webViewUploadDebugEnabled: Boolean = false,
+    ) {
         when (tile.type) {
             TileType.APP -> launchAppInternal(context, tile.target)
-            TileType.WEBSITE -> launchWebTile(context, tile)
+            TileType.WEBSITE -> launchWebTile(context, tile, webViewUploadDebugEnabled)
             TileType.YOUTUBE -> launchYouTubeTile(context, tile)
         }
     }
@@ -94,7 +98,11 @@ object LauncherActions {
         launchExternalUrl(context, tile.target)
     }
 
-    private fun launchWebTile(context: Context, tile: ChildTile) {
+    private fun launchWebTile(
+        context: Context,
+        tile: ChildTile,
+        webViewUploadDebugEnabled: Boolean,
+    ) {
         if (tile.webLaunchMode == WebLaunchMode.IN_APP) {
             val intent = Intent(context, WebViewActivity::class.java).apply {
                 putExtra(WebViewActivity.EXTRA_URL, tile.target)
@@ -105,6 +113,7 @@ object LauncherActions {
                 putExtra(WebViewActivity.EXTRA_DOWNLOAD_POLICY, tile.downloadPolicy.name)
                 putExtra(WebViewActivity.EXTRA_FULLSCREEN_POLICY, tile.fullscreenPolicy.name)
                 putExtra(WebViewActivity.EXTRA_CAMERA_CAPTURE_POLICY, tile.cameraCapturePolicy.name)
+                putExtra(WebViewActivity.EXTRA_UPLOAD_DEBUG, webViewUploadDebugEnabled)
                 addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)
             }
             context.startActivity(intent)

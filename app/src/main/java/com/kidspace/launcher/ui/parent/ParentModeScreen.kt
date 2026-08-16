@@ -32,7 +32,7 @@ import androidx.compose.material.icons.automirrored.filled.ExitToApp
 import androidx.compose.material.icons.filled.Palette
 import androidx.compose.material.icons.filled.Apps
 import androidx.compose.material.icons.filled.Dashboard
-import androidx.compose.material.icons.filled.Save
+import androidx.compose.material.icons.filled.Settings
 import androidx.compose.material.icons.filled.VideoLibrary
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.verticalScroll
@@ -81,7 +81,7 @@ import com.kidspace.launcher.ui.components.TileIcon
 import com.kidspace.launcher.util.UrlValidator
 import com.kidspace.launcher.youtube.YouTubeSearchResult
 
-enum class ParentTab { TILES, APPS, VIDEOS, APPEARANCE, BACKUP }
+enum class ParentTab { TILES, APPS, VIDEOS, APPEARANCE, SYSTEM }
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -113,6 +113,8 @@ fun ParentModeScreen(
     onDownloadUpdate: () -> Unit,
     onInstallUpdate: () -> Unit,
     onDismissUpdateStatus: () -> Unit,
+    webViewUploadDebugEnabled: Boolean,
+    onWebViewUploadDebugChange: (Boolean) -> Unit,
     youtubeQuery: String,
     isYouTubeSearching: Boolean,
     youtubeResults: List<YouTubeSearchResult>,
@@ -177,10 +179,10 @@ fun ParentModeScreen(
                     label = { Text("Look") },
                 )
                 NavigationBarItem(
-                    selected = selectedTab == ParentTab.BACKUP.ordinal,
-                    onClick = { selectedTab = ParentTab.BACKUP.ordinal },
-                    icon = { Icon(Icons.Default.Save, null) },
-                    label = { Text("Backup") },
+                    selected = selectedTab == ParentTab.SYSTEM.ordinal,
+                    onClick = { selectedTab = ParentTab.SYSTEM.ordinal },
+                    icon = { Icon(Icons.Default.Settings, null) },
+                    label = { Text("System") },
                 )
             }
         },
@@ -235,7 +237,7 @@ fun ParentModeScreen(
                     onImportCustomBackground = onImportCustomBackground,
                     onClearCustomBackground = onClearCustomBackground,
                 )
-                ParentTab.BACKUP -> BackupTab(
+                ParentTab.SYSTEM -> SystemTab(
                     tileCount = tiles.size,
                     statusMessage = backupStatusMessage,
                     statusIsError = backupStatusIsError,
@@ -250,6 +252,8 @@ fun ParentModeScreen(
                     onDownloadUpdate = onDownloadUpdate,
                     onInstallUpdate = onInstallUpdate,
                     onDismissUpdateStatus = onDismissUpdateStatus,
+                    webViewUploadDebugEnabled = webViewUploadDebugEnabled,
+                    onWebViewUploadDebugChange = onWebViewUploadDebugChange,
                 )
             }
         }
