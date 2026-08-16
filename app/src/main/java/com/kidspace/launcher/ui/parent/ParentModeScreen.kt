@@ -205,7 +205,7 @@ fun ParentModeScreen(
                 )
                 ParentTab.APPS -> AppsTab(
                     apps = installedApps,
-                    childAppPackages = tiles
+                    childAppTargets = tiles
                         .filter { it.type == TileType.APP }
                         .map { it.target }
                         .toSet(),
@@ -422,7 +422,7 @@ private fun TilesEditorTab(
 @Composable
 private fun AppsTab(
     apps: List<InstalledApp>,
-    childAppPackages: Set<String>,
+    childAppTargets: Set<String>,
     onAdd: (InstalledApp) -> Unit,
     onRemove: (InstalledApp) -> Unit,
     onLaunch: (InstalledApp) -> Unit,
@@ -431,8 +431,8 @@ private fun AppsTab(
         contentPadding = PaddingValues(16.dp),
         verticalArrangement = Arrangement.spacedBy(8.dp),
     ) {
-        items(apps, key = { it.packageName }) { app ->
-            val alreadyAdded = app.packageName in childAppPackages
+        items(apps, key = { it.listKey() }) { app ->
+            val alreadyAdded = app.tileTarget() in childAppTargets
             Card(
                 modifier = Modifier
                     .fillMaxWidth()
@@ -449,8 +449,8 @@ private fun AppsTab(
                 ) {
                     TileIcon(
                         type = TileType.APP,
-                        target = app.packageName,
-                        iconKey = "app:${app.packageName}",
+                        target = app.tileTarget(),
+                        iconKey = app.tileIconKey(),
                         size = 40.dp,
                     )
                     Column(
@@ -460,7 +460,12 @@ private fun AppsTab(
                     ) {
                         Text(app.label, fontWeight = FontWeight.Medium)
                         Text(
-                            text = if (alreadyAdded) "On child screen · tap to remove" else "Tap to add to child screen",
+                            text = when {
+                                alreadyAdded -> "On child screen · tap to remove"
+                                app.browserLabel != null -> "Web shortcut · ${app.browserLabel} · tap to add"
+                                app.legacyIntentUri != null -> "Pinned shortcut · tap to add"
+                                else -> "Tap to add to child screen"
+                            },
                             fontSize = 11.sp,
                             color = Color.Gray,
                         )

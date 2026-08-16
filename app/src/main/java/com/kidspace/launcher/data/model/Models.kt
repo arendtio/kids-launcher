@@ -1,5 +1,8 @@
 package com.kidspace.launcher.data.model
 
+import com.kidspace.launcher.shortcuts.ShortcutTarget
+import com.kidspace.launcher.util.IconKeyGenerator
+
 enum class TileType {
     APP,
     WEBSITE,
@@ -50,9 +53,32 @@ data class WebLinkConfig(
 )
 
 data class InstalledApp(
-    val packageName: String,
     val label: String,
-)
+    val packageName: String,
+    val shortcutHostPackage: String? = null,
+    val shortcutId: String? = null,
+    val browserLabel: String? = null,
+    val legacyIntentUri: String? = null,
+) {
+    val isShortcut: Boolean
+        get() = shortcutId != null || legacyIntentUri != null
+
+    fun tileTarget(): String = when {
+        legacyIntentUri != null -> ShortcutTarget.encodeLegacy(packageName)
+        shortcutId != null && shortcutHostPackage != null ->
+            ShortcutTarget.encode(shortcutHostPackage, shortcutId)
+        else -> packageName
+    }
+
+    fun tileIconKey(): String = when {
+        legacyIntentUri != null -> IconKeyGenerator.forLegacyShortcut(packageName)
+        shortcutId != null && shortcutHostPackage != null ->
+            IconKeyGenerator.forShortcut(shortcutHostPackage, shortcutId)
+        else -> IconKeyGenerator.forApp(packageName)
+    }
+
+    fun listKey(): String = tileTarget()
+}
 
 data class AppearanceSettings(
     val backgroundType: BackgroundType = BackgroundType.PRESET,

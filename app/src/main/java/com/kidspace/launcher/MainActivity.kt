@@ -4,6 +4,7 @@ import android.os.Bundle
 import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
 import androidx.activity.enableEdgeToEdge
+import androidx.activity.viewModels
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.material3.MaterialTheme
@@ -13,9 +14,9 @@ import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
-import androidx.lifecycle.viewmodel.compose.viewModel
 import com.kidspace.launcher.BuildConfig
 import com.kidspace.launcher.domain.LauncherActions
+import com.kidspace.launcher.shortcuts.LauncherShortcutObserver
 import com.kidspace.launcher.ui.AppScreen
 import com.kidspace.launcher.ui.LauncherLoadingScreen
 import com.kidspace.launcher.ui.LauncherViewModel
@@ -27,24 +28,29 @@ import com.kidspace.launcher.ui.theme.toComposeColor
 import com.kidspace.launcher.update.AppUpdateInstaller
 
 class MainActivity : ComponentActivity() {
+    private val viewModel: LauncherViewModel by viewModels {
+        val app = application as KidSpaceApplication
+        LauncherViewModel.Factory(
+            app.tileRepository,
+            app.appRepository,
+            app.appearanceRepository,
+            app.backupRepository,
+            app.appUpdateRepository,
+            app.youtubeSearchRepository,
+        )
+    }
+
+    private var shortcutObserver: LauncherShortcutObserver? = null
+
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         enableEdgeToEdge()
 
-        val app = application as KidSpaceApplication
+        shortcutObserver = LauncherShortcutObserver(this) {
+            viewModel.loadInstalledApps()
+        }
 
         setContent {
-            val viewModel: LauncherViewModel = viewModel(
-                factory = LauncherViewModel.Factory(
-                    app.tileRepository,
-                    app.appRepository,
-                    app.appearanceRepository,
-                    app.backupRepository,
-                    app.appUpdateRepository,
-                    app.youtubeSearchRepository,
-                ),
-            )
-
             val screen by viewModel.screen.collectAsState()
             val isLauncherReady by viewModel.isLauncherReady.collectAsState()
             val tiles by viewModel.tiles.collectAsState()
@@ -106,10 +112,10 @@ class MainActivity : ComponentActivity() {
                             onExitParentMode = viewModel::exitParentMode,
                             onAddApp = viewModel::addAppTile,
                             onRemoveApp = { app ->
-                                viewModel.removeAppFromChildSurface(app.packageName)
+                                viewModel.removeAppFromChildSurface(app.tileTarget())
                             },
                             onLaunchApp = { app ->
-                                LauncherActions.launchApp(this@MainActivity, app.packageName)
+                                LauncherActions.launchInstalledApp(this@MainActivity, app)
                             },
                             onAddLink = viewModel::addLinkTile,
                             onUpdateTile = viewModel::updateTile,
@@ -154,5 +160,16 @@ class MainActivity : ComponentActivity() {
                 }
             }
         }
+    }
+
+    override fun onStart() {
+        super.onStart()
+        shortcutObserver?.start()
+        viewModel.loadInstalledApps()
+    }
+
+    override fun onStop() {
+        shortcutObserver?.stop()
+        super.onStop()
     }
 }
