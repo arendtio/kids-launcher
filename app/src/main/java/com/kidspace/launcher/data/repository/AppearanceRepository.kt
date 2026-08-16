@@ -4,6 +4,7 @@ import android.content.Context
 import androidx.datastore.core.DataStore
 import androidx.datastore.preferences.core.Preferences
 import androidx.datastore.preferences.core.edit
+import androidx.datastore.preferences.core.booleanPreferencesKey
 import androidx.datastore.preferences.core.longPreferencesKey
 import androidx.datastore.preferences.core.stringPreferencesKey
 import androidx.datastore.preferences.preferencesDataStore
@@ -31,6 +32,7 @@ class AppearanceRepository(private val context: Context) {
             primaryColor = prefs[Keys.PRIMARY_COLOR] ?: AppearanceDefaults.PRIMARY,
             secondaryColor = prefs[Keys.SECONDARY_COLOR] ?: AppearanceDefaults.SECONDARY,
             accentColor = prefs[Keys.ACCENT_COLOR] ?: AppearanceDefaults.ACCENT,
+            backgroundAnimationsEnabled = prefs[Keys.BACKGROUND_ANIMATIONS_ENABLED] ?: true,
         )
     }
 
@@ -52,6 +54,7 @@ class AppearanceRepository(private val context: Context) {
             prefs[Keys.PRIMARY_COLOR] = normalized.primaryColor
             prefs[Keys.SECONDARY_COLOR] = normalized.secondaryColor
             prefs[Keys.ACCENT_COLOR] = normalized.accentColor
+            prefs[Keys.BACKGROUND_ANIMATIONS_ENABLED] = normalized.backgroundAnimationsEnabled
         }
     }
 
@@ -82,5 +85,6 @@ class AppearanceRepository(private val context: Context) {
         val PRIMARY_COLOR = longPreferencesKey("primary_color")
         val SECONDARY_COLOR = longPreferencesKey("secondary_color")
         val ACCENT_COLOR = longPreferencesKey("accent_color")
+        val BACKGROUND_ANIMATIONS_ENABLED = booleanPreferencesKey("background_animations_enabled")
     }
 }

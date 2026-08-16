@@ -56,6 +56,7 @@ object BackupCodec {
             .put("primaryColor", colorToHex(backup.appearance.primaryColor))
             .put("secondaryColor", colorToHex(backup.appearance.secondaryColor))
             .put("accentColor", colorToHex(backup.appearance.accentColor))
+            .put("backgroundAnimationsEnabled", backup.appearance.backgroundAnimationsEnabled)
 
         if (backup.customBackgroundBase64 != null && backup.customBackgroundMimeType != null) {
             appearance.put(
@@ -118,6 +119,7 @@ object BackupCodec {
             primaryColor = hexToColor(appearanceJson.getString("primaryColor")),
             secondaryColor = hexToColor(appearanceJson.getString("secondaryColor")),
             accentColor = hexToColor(appearanceJson.getString("accentColor")),
+            backgroundAnimationsEnabled = appearanceJson.optBoolean("backgroundAnimationsEnabled", true),
         )
 
         return KidSpaceBackup(

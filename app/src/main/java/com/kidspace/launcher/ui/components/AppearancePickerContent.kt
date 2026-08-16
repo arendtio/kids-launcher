@@ -19,6 +19,7 @@ import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Image
 import androidx.compose.material3.Card
 import androidx.compose.material3.Icon
+import androidx.compose.material3.Switch
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
@@ -74,6 +75,31 @@ fun AppearancePickerContent(
                     },
                 )
             }
+        }
+
+        Row(
+            modifier = Modifier
+                .fillMaxWidth()
+                .clip(RoundedCornerShape(12.dp))
+                .background(Color(0xFFF5F7FA))
+                .padding(horizontal = 16.dp, vertical = 10.dp),
+            verticalAlignment = Alignment.CenterVertically,
+            horizontalArrangement = Arrangement.SpaceBetween,
+        ) {
+            Column(modifier = Modifier.weight(1f)) {
+                Text("Background animations", fontWeight = FontWeight.Medium, fontSize = 16.sp)
+                Text(
+                    "Turn off for smoother scrolling",
+                    fontSize = 12.sp,
+                    color = Color.Gray,
+                )
+            }
+            Switch(
+                checked = draft.backgroundAnimationsEnabled,
+                onCheckedChange = { enabled ->
+                    onDraftChange(draft.copy(backgroundAnimationsEnabled = enabled))
+                },
+            )
         }
 
         Text("Color Themes", fontWeight = FontWeight.Bold, fontSize = 18.sp)

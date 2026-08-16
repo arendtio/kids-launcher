@@ -64,6 +64,7 @@ fun ChildBackground(
                         primary = primary,
                         secondary = secondary,
                         accent = accent,
+                        animationsEnabled = settings.backgroundAnimationsEnabled,
                     )
                 }
             }
@@ -73,6 +74,7 @@ fun ChildBackground(
                     primary = primary,
                     secondary = secondary,
                     accent = accent,
+                    animationsEnabled = settings.backgroundAnimationsEnabled,
                 )
             }
         }
@@ -85,6 +87,7 @@ fun PresetBackgroundScene(
     primary: Color,
     secondary: Color,
     accent: Color,
+    animationsEnabled: Boolean = true,
     modifier: Modifier = Modifier,
 ) {
     val resolvedId = if (presetId == "sunny_meadow") BackgroundPresets.SKY_MEADOW else presetId
@@ -93,16 +96,56 @@ fun PresetBackgroundScene(
             .fillMaxSize()
             .drawWithCache {
                 onDrawBehind {
-                    when (resolvedId) {
-                        BackgroundPresets.OCEAN_BUBBLES -> drawOceanScene(primary, secondary, accent)
-                        BackgroundPresets.CANDY_CLOUDS -> drawCandyCloudScene(primary, secondary, accent)
-                        BackgroundPresets.STARRY_NIGHT -> drawStarryNightScene(primary, secondary, accent)
-                        BackgroundPresets.RAINBOW_HILLS -> drawRainbowHillsScene(primary, secondary, accent)
-                        else -> drawSkyMeadowScene(primary, secondary, accent)
+                    if (animationsEnabled) {
+                        when (resolvedId) {
+                            BackgroundPresets.OCEAN_BUBBLES -> drawOceanScene(primary, secondary, accent)
+                            BackgroundPresets.CANDY_CLOUDS -> drawCandyCloudScene(primary, secondary, accent)
+                            BackgroundPresets.STARRY_NIGHT -> drawStarryNightScene(primary, secondary, accent)
+                            BackgroundPresets.RAINBOW_HILLS -> drawRainbowHillsScene(primary, secondary, accent)
+                            else -> drawSkyMeadowScene(primary, secondary, accent)
+                        }
+                    } else {
+                        drawSimpleGradientScene(resolvedId, primary, secondary, accent)
                     }
                 }
             },
     )
+}
+
+private fun DrawScope.drawSimpleGradientScene(
+    presetId: String,
+    primary: Color,
+    secondary: Color,
+    accent: Color,
+) {
+    val colors = when (presetId) {
+        BackgroundPresets.OCEAN_BUBBLES -> listOf(
+            secondary.copy(alpha = 0.9f),
+            primary.copy(alpha = 0.95f),
+            primary.darken(0.15f),
+        )
+        BackgroundPresets.CANDY_CLOUDS -> listOf(
+            blend(primary, Color.White, 0.35f),
+            blend(secondary, Color.White, 0.25f),
+            blend(accent, Color.White, 0.45f),
+        )
+        BackgroundPresets.STARRY_NIGHT -> listOf(
+            primary.darken(0.55f),
+            blend(primary, Color(0xFF1A237E), 0.5f),
+            primary.darken(0.65f),
+        )
+        BackgroundPresets.RAINBOW_HILLS -> listOf(
+            secondary.lighten(0.35f),
+            primary.lighten(0.25f),
+            accent.lighten(0.15f),
+        )
+        else -> listOf(
+            primary.copy(alpha = 0.85f),
+            secondary.copy(alpha = 0.75f),
+            secondary.copy(alpha = 0.55f),
+        )
+    }
+    drawRect(brush = Brush.verticalGradient(colors))
 }
 
 private fun DrawScope.drawSkyMeadowScene(primary: Color, secondary: Color, accent: Color) {

@@ -87,6 +87,7 @@ data class AppearanceSettings(
     val primaryColor: Long = AppearanceDefaults.PRIMARY,
     val secondaryColor: Long = AppearanceDefaults.SECONDARY,
     val accentColor: Long = AppearanceDefaults.ACCENT,
+    val backgroundAnimationsEnabled: Boolean = true,
 )
 
 /** Cohesive default palette: soft sky blues with a warm peach accent. */
