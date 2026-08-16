@@ -23,7 +23,7 @@ class SiteIconRepository {
     }
 
     private fun resolveIconUrlInternal(pageUrl: String): String? {
-        val html = fetchText(pageUrl) ?: return SiteIconResolver.googleFaviconFallback(pageUrl)
+        val html = fetchText(pageUrl) ?: return null
         val candidates = mutableListOf<SiteIconCandidate>()
 
         candidates += SiteIconResolver.parseHtmlIconCandidates(html, pageUrl)
@@ -40,8 +40,8 @@ class SiteIconRepository {
             break
         }
 
-        return SiteIconResolver.selectBestIcon(candidates)
-            ?: SiteIconResolver.googleFaviconFallback(pageUrl)
+        val resolved = SiteIconResolver.selectBestIcon(candidates) ?: return null
+        return if (SiteIconResolver.isGoogleFaviconFallback(resolved)) null else resolved
     }
 
     private fun looksLikeManifest(body: String): Boolean {

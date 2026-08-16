@@ -3,6 +3,7 @@ package com.kidspace.launcher.ui.components
 import android.content.pm.LauncherApps
 import android.graphics.drawable.Drawable
 import android.os.Process
+import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.fillMaxSize
@@ -32,9 +33,12 @@ import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
 import coil.compose.AsyncImage
+import coil.compose.AsyncImagePainter
+import coil.compose.rememberAsyncImagePainter
 import coil.request.ImageRequest
 import com.kidspace.launcher.data.model.TileType
 import com.kidspace.launcher.util.IconKeyGenerator
+import com.kidspace.launcher.util.SiteIconResolver
 
 /** Corner radius as a fraction of the icon slot (0–100 for [RoundedCornerShape]). */
 private const val RasterIconCornerPercent = 12
@@ -57,8 +61,12 @@ fun TileIcon(
     val roundCorners = usesRasterClip(iconKey, type)
     val resolvedScale = resolveContentScale(type, iconKey, contentScale)
     val context = LocalContext.current
+    val fallbackKey = remember(iconKey, target) { fallbackIconKey(iconKey, target) }
 
     when {
+        iconKey.startsWith("random:") || iconKey.startsWith("favicon:") -> {
+            FallbackIcon(fallbackKey, iconModifier, size, tint)
+        }
         iconKey.startsWith("app:") -> {
             val packageName = iconKey.removePrefix("app:")
             val drawable = remember(iconKey) {
@@ -76,27 +84,23 @@ fun TileIcon(
                     )
                 }
             } else {
-                FallbackIcon(iconKey, iconModifier, size, tint)
+                FallbackIcon(fallbackKey, iconModifier, size, tint)
             }
         }
         iconKey.startsWith("youtube:") -> {
             val url = IconKeyGenerator.youtubeThumbnailUrl(iconKey)
             if (url == null) {
-                FallbackIcon(iconKey, iconModifier, size, tint)
+                FallbackIcon(fallbackKey, iconModifier, size, tint)
             } else {
-                IconSlot(modifier = iconModifier, roundCorners = true) {
-                    AsyncImage(
-                        model = remember(url, context) {
-                            ImageRequest.Builder(context)
-                                .data(url)
-                                .crossfade(false)
-                                .build()
-                        },
-                        contentDescription = null,
-                        modifier = Modifier.fillMaxSize(),
-                        contentScale = resolvedScale,
-                    )
-                }
+                RemoteTileIcon(
+                    url = url,
+                    fallbackKey = fallbackKey,
+                    iconModifier = iconModifier,
+                    roundCorners = true,
+                    contentScale = resolvedScale,
+                    size = size,
+                    tint = tint,
+                )
             }
         }
         iconKey.startsWith("shortcut:") -> {
@@ -113,33 +117,84 @@ fun TileIcon(
                     )
                 }
             } else {
-                FallbackIcon("random:star", iconModifier, size, tint)
+                FallbackIcon(fallbackKey, iconModifier, size, tint)
             }
         }
         iconKey.startsWith("legacy:") -> {
-            FallbackIcon("random:star", iconModifier, size, tint)
+            FallbackIcon(fallbackKey, iconModifier, size, tint)
         }
-        iconKey.startsWith("favicon:") || iconKey.startsWith("http") -> {
-            val url = if (iconKey.startsWith("http")) {
-                iconKey
+        iconKey.startsWith("http") -> {
+            val url = if (SiteIconResolver.isGoogleFaviconFallback(iconKey)) {
+                null
             } else {
-                IconKeyGenerator.faviconUrl(target)
+                iconKey
             }
-            IconSlot(modifier = iconModifier, roundCorners = roundCorners) {
-                AsyncImage(
-                    model = remember(url, context) {
-                        ImageRequest.Builder(context)
-                            .data(url)
-                            .crossfade(false)
-                            .build()
-                    },
-                    contentDescription = null,
-                    modifier = Modifier.fillMaxSize(),
+            if (url == null) {
+                FallbackIcon(fallbackKey, iconModifier, size, tint)
+            } else {
+                RemoteTileIcon(
+                    url = url,
+                    fallbackKey = fallbackKey,
+                    iconModifier = iconModifier,
+                    roundCorners = roundCorners,
                     contentScale = resolvedScale,
+                    size = size,
+                    tint = tint,
                 )
             }
         }
-        else -> FallbackIcon(iconKey, iconModifier, size, tint)
+        else -> FallbackIcon(fallbackKey, iconModifier, size, tint)
+    }
+}
+
+@Composable
+private fun RemoteTileIcon(
+    url: String,
+    fallbackKey: String,
+    iconModifier: Modifier,
+    roundCorners: Boolean,
+    contentScale: ContentScale,
+    size: Dp?,
+    tint: Color,
+) {
+    val context = LocalContext.current
+    val painter = rememberAsyncImagePainter(
+        model = remember(url, context) {
+            ImageRequest.Builder(context)
+                .data(url)
+                .crossfade(false)
+                .build()
+        },
+    )
+    when (painter.state) {
+        is AsyncImagePainter.State.Success -> {
+            IconSlot(modifier = iconModifier, roundCorners = roundCorners) {
+                Image(
+                    painter = painter,
+                    contentDescription = null,
+                    modifier = Modifier.fillMaxSize(),
+                    contentScale = contentScale,
+                )
+            }
+        }
+        is AsyncImagePainter.State.Loading -> {
+            FallbackIcon(
+                iconKey = fallbackKey,
+                modifier = iconModifier,
+                size = size,
+                tint = tint.copy(alpha = 0.5f),
+            )
+        }
+        else -> {
+            FallbackIcon(fallbackKey, iconModifier, size, tint)
+        }
+    }
+}
+
+private fun fallbackIconKey(iconKey: String, target: String): String {
+    return when {
+        iconKey.startsWith("random:") -> iconKey
+        else -> IconKeyGenerator.randomFor(target)
     }
 }
 

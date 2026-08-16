@@ -24,6 +24,8 @@ import com.kidspace.launcher.data.model.PermissionPolicy
 import com.kidspace.launcher.data.model.WebLaunchMode
 import com.kidspace.launcher.util.IconKeyGenerator
 import com.kidspace.launcher.util.SiteIconRepository
+import com.kidspace.launcher.util.SiteIconResolver
+import com.kidspace.launcher.util.TileIconPreloader
 import com.kidspace.launcher.util.YouTubeUtils
 import com.kidspace.launcher.youtube.YouTubeSearchRepository
 import com.kidspace.launcher.youtube.YouTubeSearchResult
@@ -76,6 +78,7 @@ data class YouTubeSearchUiState(
 
 @OptIn(FlowPreview::class)
 class LauncherViewModel(
+    private val appContext: Context,
     private val tileRepository: TileRepository,
     private val appRepository: AppRepository,
     private val appearanceRepository: AppearanceRepository,
@@ -124,8 +127,9 @@ class LauncherViewModel(
             combine(
                 tileRepository.observeTiles(),
                 appearanceRepository.observeSettings(),
-            ) { _, _ -> }
+            ) { tiles, _ -> tiles }
                 .first()
+            prepareChildHomeIcons()
             _isLauncherReady.value = true
         }
         viewModelScope.launch {
@@ -137,10 +141,23 @@ class LauncherViewModel(
             tileRepository.observeTiles()
                 .debounce(500)
                 .collect { currentTiles ->
-                    withContext(Dispatchers.IO) {
-                        refreshUnresolvedSiteIcons(currentTiles)
+                    if (currentTiles.size >= TileIconPreloader.EagerLoadTileLimit) {
+                        withContext(Dispatchers.IO) {
+                            refreshUnresolvedSiteIcons(currentTiles)
+                        }
                     }
                 }
+        }
+    }
+
+    private suspend fun prepareChildHomeIcons() {
+        var currentTiles = tileRepository.observeTiles().first()
+        if (currentTiles.size < TileIconPreloader.EagerLoadTileLimit) {
+            withContext(Dispatchers.IO) {
+                refreshUnresolvedSiteIcons(currentTiles)
+            }
+            currentTiles = tileRepository.observeTiles().first()
+            TileIconPreloader.preloadTiles(appContext, currentTiles)
         }
     }
 
@@ -149,7 +166,7 @@ class LauncherViewModel(
     private suspend fun refreshUnresolvedSiteIcons(tiles: List<ChildTile>) {
         tiles.filter { tile ->
             tile.type == TileType.WEBSITE &&
-                (tile.iconKey.startsWith("favicon:") || tile.iconKey.startsWith("random:"))
+                SiteIconResolver.isUnresolvedSiteIconKey(tile.iconKey)
         }.forEach { tile ->
             if (tile.target in refreshedSiteIconTargets) return@forEach
             refreshedSiteIconTargets.add(tile.target)
@@ -160,9 +177,13 @@ class LauncherViewModel(
     private suspend fun resolveSiteIconForTile(tileId: Long, pageUrl: String) {
         val iconUrl = siteIconRepository.resolveIconUrl(pageUrl) ?: return
         if (!iconUrl.startsWith("http")) return
+        if (SiteIconResolver.isGoogleFaviconFallback(iconUrl)) return
         val tile = tiles.value.find { it.id == tileId } ?: return
         if (tile.iconKey == iconUrl) return
         tileRepository.updateTile(tile.copy(iconKey = iconUrl))
+        if (tiles.value.size < TileIconPreloader.EagerLoadTileLimit) {
+            TileIconPreloader.preloadTiles(appContext, listOf(tile.copy(iconKey = iconUrl)))
+        }
     }
 
     fun requestParentAccess() {
@@ -538,6 +559,7 @@ class LauncherViewModel(
     }
 
     class Factory(
+        private val appContext: Context,
         private val tileRepository: TileRepository,
         private val appRepository: AppRepository,
         private val appearanceRepository: AppearanceRepository,
@@ -550,6 +572,7 @@ class LauncherViewModel(
         @Suppress("UNCHECKED_CAST")
         override fun <T : ViewModel> create(modelClass: Class<T>): T {
             return LauncherViewModel(
+                appContext,
                 tileRepository,
                 appRepository,
                 appearanceRepository,

@@ -77,4 +77,17 @@ class SiteIconResolverTest {
         val urls = SiteIconResolver.guessManifestUrls("https://routine.arendt.cloud")
         assertTrue(urls.contains("https://routine.arendt.cloud/manifest.webmanifest"))
     }
+
+    @Test
+    fun isGoogleFaviconFallback_detectsGoogleProxyUrl() {
+        assertTrue(
+            SiteIconResolver.isGoogleFaviconFallback(
+                "https://www.google.com/s2/favicons?domain=example.com&sz=128",
+            ),
+        )
+        assertEquals(
+            false,
+            SiteIconResolver.isGoogleFaviconFallback("https://example.com/icon.png"),
+        )
+    }
 }

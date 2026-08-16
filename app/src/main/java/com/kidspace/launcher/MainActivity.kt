@@ -31,6 +31,7 @@ class MainActivity : ComponentActivity() {
     private val viewModel: LauncherViewModel by viewModels {
         val app = application as KidSpaceApplication
         LauncherViewModel.Factory(
+            applicationContext,
             app.tileRepository,
             app.appRepository,
             app.appearanceRepository,

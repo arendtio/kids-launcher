@@ -74,6 +74,14 @@ object SiteIconResolver {
 
     fun googleFaviconFallback(pageUrl: String): String? = IconKeyGenerator.faviconUrl(pageUrl)
 
+    fun isGoogleFaviconFallback(url: String): Boolean {
+        return url.contains("google.com/s2/favicons", ignoreCase = true)
+    }
+
+    fun isUnresolvedSiteIconKey(iconKey: String): Boolean {
+        return iconKey.startsWith("favicon:") || iconKey.startsWith("random:")
+    }
+
     private fun parseIconArray(icons: JSONArray, baseUrl: String): List<SiteIconCandidate> {
         val candidates = mutableListOf<SiteIconCandidate>()
         for (index in 0 until icons.length()) {
