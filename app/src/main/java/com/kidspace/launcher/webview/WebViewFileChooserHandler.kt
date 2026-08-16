@@ -18,7 +18,8 @@ import java.io.File
  * Handles [WebChromeClient.onShowFileChooser] for `<input type="file">` in the in-app browser.
  *
  * URIs must be delivered to [ValueCallback.onReceiveValue] immediately when the picker returns.
- * Deferring breaks `input.files` population in many WebViews (the page never reaches `confirm()`).
+ * The callback is also stored in [WebViewFileChooserCallbackStore] so it survives activity
+ * recreation while the system picker is open.
  */
 class WebViewFileChooserHandler(
     private val activity: ComponentActivity,
@@ -77,8 +78,9 @@ class WebViewFileChooserHandler(
                 "mode=${params?.mode} policy=$fileUploadPolicy",
         )
 
-        pendingCallback?.onReceiveValue(null)
+        resolvePreviousCallback()?.onReceiveValue(null)
         pendingCallback = filePathCallback
+        WebViewFileChooserCallbackStore.setPending(filePathCallback)
 
         if (WebViewFileChooserLogic.shouldUseCameraCapture(params)) {
             if (!WebViewFileChooserLogic.isCaptureAllowed(cameraCapturePolicy)) {
@@ -107,7 +109,12 @@ class WebViewFileChooserHandler(
         return true
     }
 
-    fun cancel() {
+    fun cancel(force: Boolean = false) {
+        if (!force && WebViewFileChooserCallbackStore.pickerInFlight) {
+            debugTrace?.event("cancel skipped (picker in flight)")
+            pendingCallback = null
+            return
+        }
         debugTrace?.event("file chooser cancelled")
         pendingCaptureAfterPermission = false
         photoUri = null
@@ -150,8 +157,7 @@ class WebViewFileChooserHandler(
     }
 
     private fun deliverResult(uris: Array<Uri>?) {
-        val callback = pendingCallback
-        pendingCallback = null
+        val callback = resolvePendingCallback()
         if (callback == null) {
             debugTrace?.event("deliverResult skipped (no callback)")
             return
@@ -171,6 +177,24 @@ class WebViewFileChooserHandler(
         )
         callback.onReceiveValue(prepared)
         debugTrace?.event("onReceiveValue called (immediate)")
+    }
+
+    private fun resolvePendingCallback(): ValueCallback<Array<Uri>>? {
+        pendingCallback?.let {
+            pendingCallback = null
+            WebViewFileChooserCallbackStore.clear()
+            return it
+        }
+        val restored = WebViewFileChooserCallbackStore.take()
+        if (restored != null) {
+            debugTrace?.event("restored callback from store after activity recreation")
+        }
+        return restored
+    }
+
+    private fun resolvePreviousCallback(): ValueCallback<Array<Uri>>? {
+        pendingCallback?.let { return it }
+        return WebViewFileChooserCallbackStore.peek()
     }
 
     private fun describeUri(context: ComponentActivity, uri: Uri): String {
