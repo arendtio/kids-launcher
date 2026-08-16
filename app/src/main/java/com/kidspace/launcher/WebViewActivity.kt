@@ -21,6 +21,7 @@ import com.kidspace.launcher.webview.WebViewDownloadHandler
 import com.kidspace.launcher.webview.WebViewFileChooserHandler
 import com.kidspace.launcher.webview.WebViewFullscreenHandler
 import com.kidspace.launcher.webview.WebViewGeolocationHandler
+import com.kidspace.launcher.webview.WebViewJsDialogHandler
 import com.kidspace.launcher.webview.WebViewPermissionHandler
 
 class WebViewActivity : ComponentActivity() {
@@ -32,6 +33,7 @@ class WebViewActivity : ComponentActivity() {
     private lateinit var geolocationHandler: WebViewGeolocationHandler
     private lateinit var downloadHandler: WebViewDownloadHandler
     private lateinit var fullscreenHandler: WebViewFullscreenHandler
+    private lateinit var jsDialogHandler: WebViewJsDialogHandler
 
     @SuppressLint("SetJavaScriptEnabled")
     override fun onCreate(savedInstanceState: Bundle?) {
@@ -84,6 +86,7 @@ class WebViewActivity : ComponentActivity() {
             context = this,
             downloadPolicy = downloadPolicy,
         )
+        jsDialogHandler = WebViewJsDialogHandler(activity = this)
 
         rootLayout = FrameLayout(this)
         webView = WebView(this).apply {
@@ -156,6 +159,35 @@ class WebViewActivity : ComponentActivity() {
                 override fun onHideCustomView() {
                     fullscreenHandler.onHideCustomView()
                 }
+
+                override fun onJsAlert(
+                    view: WebView?,
+                    url: String?,
+                    message: String?,
+                    result: android.webkit.JsResult?,
+                ): Boolean = jsDialogHandler.onJsAlert(view, url, message, result)
+
+                override fun onJsConfirm(
+                    view: WebView?,
+                    url: String?,
+                    message: String?,
+                    result: android.webkit.JsResult?,
+                ): Boolean = jsDialogHandler.onJsConfirm(view, url, message, result)
+
+                override fun onJsPrompt(
+                    view: WebView?,
+                    url: String?,
+                    message: String?,
+                    defaultValue: String?,
+                    result: android.webkit.JsPromptResult?,
+                ): Boolean = jsDialogHandler.onJsPrompt(view, url, message, defaultValue, result)
+
+                override fun onJsBeforeUnload(
+                    view: WebView?,
+                    url: String?,
+                    message: String?,
+                    result: android.webkit.JsResult?,
+                ): Boolean = jsDialogHandler.onJsBeforeUnload(view, url, message, result)
             }
         }
 
