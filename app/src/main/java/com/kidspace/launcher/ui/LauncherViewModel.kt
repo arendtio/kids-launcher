@@ -23,6 +23,7 @@ import com.kidspace.launcher.update.AppUpdateRepository
 import com.kidspace.launcher.data.model.PermissionPolicy
 import com.kidspace.launcher.data.model.WebLaunchMode
 import com.kidspace.launcher.util.IconKeyGenerator
+import com.kidspace.launcher.util.SiteIconRepository
 import com.kidspace.launcher.util.YouTubeUtils
 import com.kidspace.launcher.youtube.YouTubeSearchRepository
 import com.kidspace.launcher.youtube.YouTubeSearchResult
@@ -77,6 +78,7 @@ class LauncherViewModel(
     private val backupRepository: BackupRepository,
     private val appUpdateRepository: AppUpdateRepository,
     private val youtubeSearchRepository: YouTubeSearchRepository,
+    private val siteIconRepository: SiteIconRepository,
 ) : ViewModel() {
 
     val tiles: StateFlow<List<ChildTile>> = tileRepository.observeTiles()
@@ -126,6 +128,32 @@ class LauncherViewModel(
                 loadInstalledApps()
             }
         }
+        viewModelScope.launch {
+            tileRepository.observeTiles().collect { currentTiles ->
+                refreshUnresolvedSiteIcons(currentTiles)
+            }
+        }
+    }
+
+    private val refreshedSiteIconTargets = mutableSetOf<String>()
+
+    private suspend fun refreshUnresolvedSiteIcons(tiles: List<ChildTile>) {
+        tiles.filter { tile ->
+            tile.type == TileType.WEBSITE &&
+                (tile.iconKey.startsWith("favicon:") || tile.iconKey.startsWith("random:"))
+        }.forEach { tile ->
+            if (tile.target in refreshedSiteIconTargets) return@forEach
+            refreshedSiteIconTargets.add(tile.target)
+            resolveSiteIconForTile(tile.id, tile.target)
+        }
+    }
+
+    private suspend fun resolveSiteIconForTile(tileId: Long, pageUrl: String) {
+        val iconUrl = siteIconRepository.resolveIconUrl(pageUrl) ?: return
+        if (!iconUrl.startsWith("http")) return
+        val tile = tiles.value.find { it.id == tileId } ?: return
+        if (tile.iconKey == iconUrl) return
+        tileRepository.updateTile(tile.copy(iconKey = iconUrl))
     }
 
     fun requestParentAccess() {
@@ -231,7 +259,7 @@ class LauncherViewModel(
     fun addLinkTile(label: String, url: String, type: TileType, webConfig: WebLinkConfig) {
         viewModelScope.launch {
             val iconKey = IconKeyGenerator.forUrl(url)
-            tileRepository.addTile(
+            val tileId = tileRepository.addTile(
                 ChildTile(
                     type = type,
                     label = label,
@@ -248,6 +276,9 @@ class LauncherViewModel(
                     cameraCapturePolicy = webConfig.cameraCapturePolicy,
                 ),
             )
+            if (type == TileType.WEBSITE) {
+                resolveSiteIconForTile(tileId, url)
+            }
         }
     }
 
@@ -260,6 +291,10 @@ class LauncherViewModel(
                 )
             }
             tileRepository.updateTile(updated)
+            if (updated.type == TileType.WEBSITE) {
+                refreshedSiteIconTargets.remove(updated.target)
+                resolveSiteIconForTile(updated.id, updated.target)
+            }
         }
     }
 
@@ -497,6 +532,7 @@ class LauncherViewModel(
         private val backupRepository: BackupRepository,
         private val appUpdateRepository: AppUpdateRepository,
         private val youtubeSearchRepository: YouTubeSearchRepository,
+        private val siteIconRepository: SiteIconRepository,
     ) : ViewModelProvider.Factory {
         @Suppress("UNCHECKED_CAST")
         override fun <T : ViewModel> create(modelClass: Class<T>): T {
@@ -508,6 +544,7 @@ class LauncherViewModel(
                 backupRepository,
                 appUpdateRepository,
                 youtubeSearchRepository,
+                siteIconRepository,
             ) as T
         }
     }

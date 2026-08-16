@@ -38,6 +38,7 @@ class MainActivity : ComponentActivity() {
             app.backupRepository,
             app.appUpdateRepository,
             app.youtubeSearchRepository,
+            app.siteIconRepository,
         )
     }
 
