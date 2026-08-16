@@ -7,6 +7,18 @@ import java.security.MessageDigest
 object IconKeyGenerator {
     fun forApp(packageName: String): String = "app:$packageName"
 
+    fun forShortcut(hostPackage: String, shortcutId: String): String = "shortcut:$hostPackage#$shortcutId"
+
+    fun forLegacyShortcut(legacyId: String): String = "legacy:$legacyId"
+
+    fun parseShortcutIconKey(iconKey: String): Pair<String, String>? {
+        if (!iconKey.startsWith("shortcut:")) return null
+        val body = iconKey.removePrefix("shortcut:")
+        val separator = body.indexOf('#')
+        if (separator <= 0) return null
+        return body.substring(0, separator) to body.substring(separator + 1)
+    }
+
     fun forUrl(url: String): String {
         YouTubeUtils.extractVideoId(url)?.let { return "youtube:$it" }
         val host = runCatching { URI(normalizeUrl(url)).host }.getOrNull()

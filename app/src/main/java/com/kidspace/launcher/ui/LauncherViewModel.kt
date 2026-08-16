@@ -14,6 +14,7 @@ import com.kidspace.launcher.data.repository.AppRepository
 import com.kidspace.launcher.data.repository.BackupRepository
 import com.kidspace.launcher.data.repository.TileRepository
 import com.kidspace.launcher.domain.ParentGateChallenge
+import com.kidspace.launcher.shortcuts.ShortcutRefreshBus
 import com.kidspace.launcher.update.AppUpdateRepository
 import com.kidspace.launcher.data.model.PermissionPolicy
 import com.kidspace.launcher.data.model.WebLaunchMode
@@ -112,6 +113,11 @@ class LauncherViewModel(
                 .first()
             _isLauncherReady.value = true
         }
+        viewModelScope.launch {
+            ShortcutRefreshBus.requests.collect {
+                loadInstalledApps()
+            }
+        }
     }
 
     fun requestParentAccess() {
@@ -170,23 +176,24 @@ class LauncherViewModel(
 
     fun addAppTile(app: InstalledApp) {
         viewModelScope.launch {
-            val alreadyAdded = tiles.value.any { it.type == TileType.APP && it.target == app.packageName }
+            val target = app.tileTarget()
+            val alreadyAdded = tiles.value.any { it.type == TileType.APP && it.target == target }
             if (alreadyAdded) return@launch
             tileRepository.addTile(
                 ChildTile(
                     type = TileType.APP,
                     label = app.label,
-                    target = app.packageName,
-                    iconKey = IconKeyGenerator.forApp(app.packageName),
+                    target = target,
+                    iconKey = app.tileIconKey(),
                     sortOrder = 0,
                 ),
             )
         }
     }
 
-    fun removeAppFromChildSurface(packageName: String) {
+    fun removeAppFromChildSurface(target: String) {
         viewModelScope.launch {
-            val tile = tiles.value.find { it.type == TileType.APP && it.target == packageName }
+            val tile = tiles.value.find { it.type == TileType.APP && it.target == target }
             if (tile != null) {
                 tileRepository.removeTile(tile.id)
             }
@@ -195,7 +202,8 @@ class LauncherViewModel(
 
     fun toggleAppOnChildSurface(app: InstalledApp) {
         viewModelScope.launch {
-            val existing = tiles.value.find { it.type == TileType.APP && it.target == app.packageName }
+            val target = app.tileTarget()
+            val existing = tiles.value.find { it.type == TileType.APP && it.target == target }
             if (existing != null) {
                 tileRepository.removeTile(existing.id)
             } else {
@@ -203,8 +211,8 @@ class LauncherViewModel(
                     ChildTile(
                         type = TileType.APP,
                         label = app.label,
-                        target = app.packageName,
-                        iconKey = IconKeyGenerator.forApp(app.packageName),
+                        target = target,
+                        iconKey = app.tileIconKey(),
                         sortOrder = 0,
                     ),
                 )
