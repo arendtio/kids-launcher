@@ -4,7 +4,9 @@ import androidx.compose.foundation.Canvas
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.remember
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.drawWithCache
 import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.geometry.Size
 import androidx.compose.ui.graphics.Brush
@@ -12,6 +14,8 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.Path
 import androidx.compose.ui.graphics.drawscope.DrawScope
 import androidx.compose.ui.graphics.drawscope.Fill
+import androidx.compose.ui.graphics.CompositingStrategy
+import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.platform.LocalContext
 import coil.compose.AsyncImage
@@ -31,16 +35,25 @@ fun ChildBackground(
     val secondary = settings.secondaryColor.toComposeColor()
     val accent = settings.accentColor.toComposeColor()
 
-    Box(modifier = modifier.fillMaxSize()) {
+    Box(
+        modifier = modifier
+            .fillMaxSize()
+            .graphicsLayer {
+                compositingStrategy = CompositingStrategy.Offscreen
+            },
+    ) {
         when (settings.backgroundType) {
             BackgroundType.CUSTOM -> {
                 val uri = settings.customBackgroundUri
+                val context = LocalContext.current
                 if (!uri.isNullOrBlank()) {
                     AsyncImage(
-                        model = ImageRequest.Builder(LocalContext.current)
-                            .data(if (uri.startsWith("/")) File(uri) else uri)
-                            .crossfade(true)
-                            .build(),
+                        model = remember(uri, context) {
+                            ImageRequest.Builder(context)
+                                .data(if (uri.startsWith("/")) File(uri) else uri)
+                                .crossfade(false)
+                                .build()
+                        },
                         contentDescription = null,
                         contentScale = ContentScale.Crop,
                         modifier = Modifier.fillMaxSize(),
@@ -75,15 +88,21 @@ fun PresetBackgroundScene(
     modifier: Modifier = Modifier,
 ) {
     val resolvedId = if (presetId == "sunny_meadow") BackgroundPresets.SKY_MEADOW else presetId
-    Canvas(modifier = modifier.fillMaxSize()) {
-        when (resolvedId) {
-            BackgroundPresets.OCEAN_BUBBLES -> drawOceanScene(primary, secondary, accent)
-            BackgroundPresets.CANDY_CLOUDS -> drawCandyCloudScene(primary, secondary, accent)
-            BackgroundPresets.STARRY_NIGHT -> drawStarryNightScene(primary, secondary, accent)
-            BackgroundPresets.RAINBOW_HILLS -> drawRainbowHillsScene(primary, secondary, accent)
-            else -> drawSkyMeadowScene(primary, secondary, accent)
-        }
-    }
+    Canvas(
+        modifier = modifier
+            .fillMaxSize()
+            .drawWithCache {
+                onDrawBehind {
+                    when (resolvedId) {
+                        BackgroundPresets.OCEAN_BUBBLES -> drawOceanScene(primary, secondary, accent)
+                        BackgroundPresets.CANDY_CLOUDS -> drawCandyCloudScene(primary, secondary, accent)
+                        BackgroundPresets.STARRY_NIGHT -> drawStarryNightScene(primary, secondary, accent)
+                        BackgroundPresets.RAINBOW_HILLS -> drawRainbowHillsScene(primary, secondary, accent)
+                        else -> drawSkyMeadowScene(primary, secondary, accent)
+                    }
+                }
+            },
+    ) {}
 }
 
 private fun DrawScope.drawSkyMeadowScene(primary: Color, secondary: Color, accent: Color) {

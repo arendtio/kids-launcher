@@ -93,7 +93,11 @@ fun ChildHomeScreen(
                         EmptyChildState(accent = accent, compact = isLandscape)
                     }
                 } else {
-                    items(tiles, key = { it.id }) { tile ->
+                    items(
+                        items = tiles,
+                        key = { it.id },
+                        contentType = { it.type },
+                    ) { tile ->
                         ChildTileCard(
                             tile = tile,
                             primary = primary,
@@ -130,7 +134,7 @@ private fun ChildHeader(
             ),
         shape = RoundedCornerShape(28.dp),
         colors = CardDefaults.cardColors(containerColor = primary.copy(alpha = 0.92f)),
-        elevation = CardDefaults.cardElevation(defaultElevation = 8.dp),
+        elevation = CardDefaults.cardElevation(defaultElevation = 0.dp),
     ) {
         Column(
             modifier = Modifier
@@ -217,7 +221,7 @@ private fun AppearanceTileCard(
             .combinedClickable(onClick = onClick),
         shape = RoundedCornerShape(20.dp),
         colors = CardDefaults.cardColors(containerColor = accent.copy(alpha = 0.92f)),
-        elevation = CardDefaults.cardElevation(defaultElevation = 4.dp),
+        elevation = CardDefaults.cardElevation(defaultElevation = 0.dp),
     ) {
         Column(
             modifier = Modifier
@@ -267,7 +271,7 @@ private fun ChildTileCard(
             .combinedClickable(onClick = onClick),
         shape = RoundedCornerShape(20.dp),
         colors = CardDefaults.cardColors(containerColor = Color.White.copy(alpha = 0.94f)),
-        elevation = CardDefaults.cardElevation(defaultElevation = 4.dp),
+        elevation = CardDefaults.cardElevation(defaultElevation = 0.dp),
     ) {
         Column(
             modifier = Modifier
