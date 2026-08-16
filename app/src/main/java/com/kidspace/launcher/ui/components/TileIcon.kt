@@ -22,6 +22,8 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.RectangleShape
+import androidx.compose.ui.graphics.Shape
 import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.platform.LocalContext
@@ -32,6 +34,9 @@ import coil.compose.SubcomposeAsyncImage
 import coil.request.ImageRequest
 import com.kidspace.launcher.data.model.TileType
 import com.kidspace.launcher.util.IconKeyGenerator
+
+/** Squircle-like rounding for raster icons with full-bleed backgrounds (PWA, thumbnails). */
+private val RasterIconShape: Shape = RoundedCornerShape(percent = 22)
 
 @Composable
 fun TileIcon(
@@ -48,7 +53,8 @@ fun TileIcon(
     } else {
         modifier
     }
-    val shape = RoundedCornerShape(12.dp)
+    val resolvedScale = resolveContentScale(type, iconKey, contentScale)
+    val clipShape = if (usesRasterClip(iconKey, type)) RasterIconShape else RectangleShape
 
     when {
         iconKey.startsWith("app:") -> {
@@ -58,12 +64,17 @@ fun TileIcon(
                 context.packageManager.getApplicationIcon(packageName)
             }.getOrNull()
             if (drawable != null) {
-                AsyncImage(
-                    model = drawable,
-                    contentDescription = null,
-                    modifier = iconModifier.clip(shape),
-                    contentScale = contentScale,
-                )
+                ClippedIconImage(
+                    modifier = iconModifier,
+                    shape = clipShape,
+                ) {
+                    AsyncImage(
+                        model = drawable,
+                        contentDescription = null,
+                        modifier = Modifier.fillMaxSize(),
+                        contentScale = resolvedScale,
+                    )
+                }
             } else {
                 FallbackIcon(iconKey, iconModifier, size, tint)
             }
@@ -73,21 +84,26 @@ fun TileIcon(
             if (url == null) {
                 FallbackIcon(iconKey, iconModifier, size, tint)
             } else {
-                SubcomposeAsyncImage(
-                    model = ImageRequest.Builder(LocalContext.current)
-                        .data(url)
-                        .crossfade(true)
-                        .build(),
-                    contentDescription = null,
-                    modifier = iconModifier.clip(shape),
-                    contentScale = contentScale,
-                    loading = {
-                        FallbackIcon(iconKey, Modifier.fillMaxSize(), size, tint.copy(alpha = 0.5f))
-                    },
-                    error = {
-                        FallbackIcon(iconKey, Modifier.fillMaxSize(), size, tint)
-                    },
-                )
+                ClippedIconImage(
+                    modifier = iconModifier,
+                    shape = RasterIconShape,
+                ) {
+                    SubcomposeAsyncImage(
+                        model = ImageRequest.Builder(LocalContext.current)
+                            .data(url)
+                            .crossfade(true)
+                            .build(),
+                        contentDescription = null,
+                        modifier = Modifier.fillMaxSize(),
+                        contentScale = resolvedScale,
+                        loading = {
+                            FallbackIcon(iconKey, Modifier.fillMaxSize(), size, tint.copy(alpha = 0.5f))
+                        },
+                        error = {
+                            FallbackIcon(iconKey, Modifier.fillMaxSize(), size, tint)
+                        },
+                    )
+                }
             }
         }
         iconKey.startsWith("shortcut:") -> {
@@ -118,12 +134,17 @@ fun TileIcon(
                 null
             }
             if (drawable != null) {
-                AsyncImage(
-                    model = drawable,
-                    contentDescription = null,
-                    modifier = iconModifier.clip(shape),
-                    contentScale = contentScale,
-                )
+                ClippedIconImage(
+                    modifier = iconModifier,
+                    shape = clipShape,
+                ) {
+                    AsyncImage(
+                        model = drawable,
+                        contentDescription = null,
+                        modifier = Modifier.fillMaxSize(),
+                        contentScale = resolvedScale,
+                    )
+                }
             } else {
                 FallbackIcon("random:star", iconModifier, size, tint)
             }
@@ -137,23 +158,71 @@ fun TileIcon(
             } else {
                 IconKeyGenerator.faviconUrl(target)
             }
-            SubcomposeAsyncImage(
-                model = ImageRequest.Builder(LocalContext.current)
-                    .data(url)
-                    .crossfade(true)
-                    .build(),
-                contentDescription = null,
-                modifier = iconModifier.clip(shape),
-                contentScale = contentScale,
-                loading = {
-                    FallbackIcon(iconKey, Modifier.fillMaxSize(), size, tint.copy(alpha = 0.5f))
-                },
-                error = {
-                    FallbackIcon(iconKey, Modifier.fillMaxSize(), size, tint)
-                },
-            )
+            ClippedIconImage(
+                modifier = iconModifier,
+                shape = RasterIconShape,
+            ) {
+                SubcomposeAsyncImage(
+                    model = ImageRequest.Builder(LocalContext.current)
+                        .data(url)
+                        .crossfade(true)
+                        .build(),
+                    contentDescription = null,
+                    modifier = Modifier.fillMaxSize(),
+                    contentScale = resolvedScale,
+                    loading = {
+                        FallbackIcon(iconKey, Modifier.fillMaxSize(), size, tint.copy(alpha = 0.5f))
+                    },
+                    error = {
+                        FallbackIcon(iconKey, Modifier.fillMaxSize(), size, tint)
+                    },
+                )
+            }
         }
         else -> FallbackIcon(iconKey, iconModifier, size, tint)
+    }
+}
+
+@Composable
+private fun ClippedIconImage(
+    modifier: Modifier,
+    shape: Shape,
+    content: @Composable () -> Unit,
+) {
+    Box(
+        modifier = modifier.clip(shape),
+        contentAlignment = Alignment.Center,
+    ) {
+        Box(
+            modifier = Modifier.fillMaxSize(),
+            contentAlignment = Alignment.Center,
+        ) {
+            content()
+        }
+    }
+}
+
+private fun usesRasterClip(iconKey: String, type: TileType): Boolean {
+    return type == TileType.WEBSITE ||
+        type == TileType.YOUTUBE ||
+        iconKey.startsWith("favicon:") ||
+        iconKey.startsWith("http") ||
+        iconKey.startsWith("youtube:")
+}
+
+private fun resolveContentScale(
+    type: TileType,
+    iconKey: String,
+    requested: ContentScale,
+): ContentScale {
+    if (requested != ContentScale.Fit) return requested
+    return when {
+        type == TileType.WEBSITE ||
+            type == TileType.YOUTUBE ||
+            iconKey.startsWith("favicon:") ||
+            iconKey.startsWith("http") ||
+            iconKey.startsWith("youtube:") -> ContentScale.Crop
+        else -> ContentScale.Fit
     }
 }
 
