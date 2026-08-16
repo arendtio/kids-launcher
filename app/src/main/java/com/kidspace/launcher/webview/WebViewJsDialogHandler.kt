@@ -155,7 +155,11 @@ class WebViewJsDialogHandler(
             is PendingDialog.Confirm -> {
                 builder
                     .setMessage(dialog.message)
-                    .setPositiveButton(android.R.string.ok) { _, _ -> dialog.confirm() }
+                    .setPositiveButton(android.R.string.ok) { _, _ ->
+                        WebViewImportSession.markImportStartedIfRecentFileUpload()
+                        debugTrace?.event("confirm accepted, import guard=${WebViewImportSession.importInFlight}")
+                        dialog.confirm()
+                    }
                     .setNegativeButton(android.R.string.cancel) { _, _ -> dialog.cancel() }
             }
             is PendingDialog.Prompt -> {

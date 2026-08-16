@@ -14,17 +14,11 @@ object WebViewUploadSession {
         retainedWebView = webView
     }
 
+    fun activeWebView(): WebView? = retainedWebView
+
     fun retain(webView: WebView) {
         (webView.parent as? ViewGroup)?.removeView(webView)
         retainedWebView = webView
-    }
-
-    fun peek(): WebView? = retainedWebView
-
-    fun consumeRetained(): WebView? {
-        val webView = retainedWebView ?: return null
-        retainedWebView = null
-        return webView
     }
 
     fun clear() {

@@ -10,7 +10,7 @@ class WebViewHostViewModel : ViewModel() {
     override fun onCleared() {
         val current = webView
         webView = null
-        if (current != null && WebViewFileChooserCallbackStore.pickerInFlight) {
+        if (current != null && WebViewImportSession.shouldRetainWebView()) {
             WebViewUploadSession.retain(current)
         } else {
             current?.destroy()

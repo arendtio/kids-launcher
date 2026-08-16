@@ -14,6 +14,19 @@ object WebViewFileChooserCallbackStore {
     var pickerInFlight: Boolean = false
         private set
 
+    var recentFileDelivery: Boolean = false
+        private set
+
+    fun markRecentFileDelivery() {
+        recentFileDelivery = true
+    }
+
+    fun hasRecentFileDelivery(): Boolean = recentFileDelivery
+
+    fun clearRecentFileDelivery() {
+        recentFileDelivery = false
+    }
+
     fun setPending(value: ValueCallback<Array<Uri>>?) {
         callback = value
         pickerInFlight = value != null
