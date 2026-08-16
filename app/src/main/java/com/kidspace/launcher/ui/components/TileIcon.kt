@@ -4,6 +4,7 @@ import android.content.pm.LauncherApps
 import android.os.Process
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.layout.BoxWithConstraints
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.shape.CircleShape
@@ -27,6 +28,7 @@ import androidx.compose.ui.graphics.Shape
 import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
 import coil.compose.AsyncImage
@@ -35,21 +37,8 @@ import coil.request.ImageRequest
 import com.kidspace.launcher.data.model.TileType
 import com.kidspace.launcher.util.IconKeyGenerator
 
-/**
- * Corner radius for raster tile icons (PWA, thumbnails).
- *
- * Android adaptive icons use an OEM mask on a 108dp canvas; at typical launcher tile sizes
- * that reads as roughly 12% — not the 30% used for Play Store marketing assets.
- */
-private const val RasterIconCornerPercent = 12
-
-private val RasterIconShape: Shape = RoundedCornerShape(percent = RasterIconCornerPercent)
-
-private fun rasterIconShape(size: Dp?): Shape {
-    if (size == null) return RasterIconShape
-    val radius = (size.value * RasterIconCornerPercent / 100f).coerceIn(8f, 16f).dp
-    return RoundedCornerShape(radius)
-}
+/** Corner radius as a fraction of the laid-out icon slot (after tile padding). */
+private const val RasterIconCornerFraction = 0.12f
 
 @Composable
 fun TileIcon(
@@ -59,15 +48,15 @@ fun TileIcon(
     modifier: Modifier = Modifier,
     size: Dp? = null,
     tint: Color = Color.White,
-    contentScale: ContentScale = ContentScale.Crop,
+    contentScale: ContentScale = ContentScale.Fit,
 ) {
     val iconModifier = if (size != null) {
         modifier.size(size)
     } else {
         modifier
     }
+    val roundCorners = usesRasterClip(iconKey, type)
     val resolvedScale = resolveContentScale(type, iconKey, contentScale)
-    val clipShape = if (usesRasterClip(iconKey, type)) RasterIconShape else RectangleShape
 
     when {
         iconKey.startsWith("app:") -> {
@@ -77,10 +66,7 @@ fun TileIcon(
                 context.packageManager.getApplicationIcon(packageName)
             }.getOrNull()
             if (drawable != null) {
-                ClippedIconImage(
-                    modifier = iconModifier,
-                    shape = clipShape,
-                ) {
+                IconSlot(modifier = iconModifier, roundCorners = false) {
                     AsyncImage(
                         model = drawable,
                         contentDescription = null,
@@ -97,10 +83,7 @@ fun TileIcon(
             if (url == null) {
                 FallbackIcon(iconKey, iconModifier, size, tint)
             } else {
-                ClippedIconImage(
-                    modifier = iconModifier,
-                    shape = rasterIconShape(size),
-                ) {
+                IconSlot(modifier = iconModifier, roundCorners = true) {
                     SubcomposeAsyncImage(
                         model = ImageRequest.Builder(LocalContext.current)
                             .data(url)
@@ -147,10 +130,7 @@ fun TileIcon(
                 null
             }
             if (drawable != null) {
-                ClippedIconImage(
-                    modifier = iconModifier,
-                    shape = clipShape,
-                ) {
+                IconSlot(modifier = iconModifier, roundCorners = false) {
                     AsyncImage(
                         model = drawable,
                         contentDescription = null,
@@ -171,10 +151,7 @@ fun TileIcon(
             } else {
                 IconKeyGenerator.faviconUrl(target)
             }
-            ClippedIconImage(
-                modifier = iconModifier,
-                shape = rasterIconShape(size),
-            ) {
+            IconSlot(modifier = iconModifier, roundCorners = roundCorners) {
                 SubcomposeAsyncImage(
                     model = ImageRequest.Builder(LocalContext.current)
                         .data(url)
@@ -196,18 +173,41 @@ fun TileIcon(
     }
 }
 
+/**
+ * Lays out the icon in its final slot, then clips raster artwork with a radius derived from
+ * that slot — not from the source bitmap resolution.
+ */
 @Composable
-private fun ClippedIconImage(
+private fun IconSlot(
     modifier: Modifier,
-    shape: Shape,
+    roundCorners: Boolean,
     content: @Composable () -> Unit,
 ) {
-    Box(
-        modifier = modifier.clip(shape),
+    BoxWithConstraints(
+        modifier = modifier,
         contentAlignment = Alignment.Center,
     ) {
-        content()
+        val shape = if (roundCorners) {
+            rasterClipShape(minOf(maxWidth, maxHeight))
+        } else {
+            RectangleShape
+        }
+        Box(
+            modifier = Modifier
+                .fillMaxSize()
+                .clip(shape),
+            contentAlignment = Alignment.Center,
+        ) {
+            content()
+        }
     }
+}
+
+@Composable
+private fun rasterClipShape(slotSize: Dp): Shape {
+    val density = LocalDensity.current
+    val radiusPx = with(density) { slotSize.toPx() * RasterIconCornerFraction }
+    return RoundedCornerShape(with(density) { radiusPx.toDp() })
 }
 
 private fun usesRasterClip(iconKey: String, type: TileType): Boolean {
@@ -221,16 +221,12 @@ private fun usesRasterClip(iconKey: String, type: TileType): Boolean {
 private fun resolveContentScale(
     type: TileType,
     iconKey: String,
-    requested: ContentScale,
+    @Suppress("UNUSED_PARAMETER") requested: ContentScale,
 ): ContentScale {
-    if (requested != ContentScale.Fit) return requested
-    return when {
-        type == TileType.WEBSITE ||
-            type == TileType.YOUTUBE ||
-            iconKey.startsWith("favicon:") ||
-            iconKey.startsWith("http") ||
-            iconKey.startsWith("youtube:") -> ContentScale.Crop
-        else -> ContentScale.Fit
+    return if (usesRasterClip(iconKey, type)) {
+        ContentScale.Crop
+    } else {
+        ContentScale.Fit
     }
 }
 
