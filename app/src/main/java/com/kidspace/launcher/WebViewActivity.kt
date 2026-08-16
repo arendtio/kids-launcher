@@ -78,7 +78,6 @@ class WebViewActivity : ComponentActivity() {
         )
         fileChooserHandler = WebViewFileChooserHandler(
             activity = this,
-            hostResumeGate = hostResumeGate,
             fileUploadPolicy = fileUploadPolicy,
             cameraCapturePolicy = cameraCapturePolicy,
         )
@@ -104,6 +103,7 @@ class WebViewActivity : ComponentActivity() {
 
             settings.javaScriptEnabled = true
             settings.domStorageEnabled = true
+            settings.allowContentAccess = true
             settings.mediaPlaybackRequiresUserGesture = false
             settings.javaScriptCanOpenWindowsAutomatically = true
             settings.setSupportMultipleWindows(false)
