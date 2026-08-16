@@ -64,7 +64,8 @@
             android:name=".WebViewActivity"
             android:exported="false"
             android:hardwareAccelerated="true"
-            android:configChanges="orientation|screenSize|keyboardHidden|screenLayout"
+            android:launchMode="singleTop"
+            android:configChanges="orientation|screenSize|keyboardHidden|screenLayout|uiMode|density|fontScale|locale|smallestScreenSize"
             android:theme="@style/Theme.KidSpaceWebView" />
 
         <activity
