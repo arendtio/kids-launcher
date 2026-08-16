@@ -32,9 +32,13 @@ import kotlinx.coroutines.flow.SharingStarted
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.flow.combine
+import kotlinx.coroutines.flow.debounce
 import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.flow.stateIn
 import kotlinx.coroutines.launch
+import kotlinx.coroutines.withContext
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.FlowPreview
 import java.io.File
 
 enum class AppScreen {
@@ -70,6 +74,7 @@ data class YouTubeSearchUiState(
     val statusMessage: String? = null,
 )
 
+@OptIn(FlowPreview::class)
 class LauncherViewModel(
     private val tileRepository: TileRepository,
     private val appRepository: AppRepository,
@@ -129,9 +134,13 @@ class LauncherViewModel(
             }
         }
         viewModelScope.launch {
-            tileRepository.observeTiles().collect { currentTiles ->
-                refreshUnresolvedSiteIcons(currentTiles)
-            }
+            tileRepository.observeTiles()
+                .debounce(500)
+                .collect { currentTiles ->
+                    withContext(Dispatchers.IO) {
+                        refreshUnresolvedSiteIcons(currentTiles)
+                    }
+                }
         }
     }
 

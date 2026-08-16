@@ -1,10 +1,10 @@
 package com.kidspace.launcher.ui.components
 
 import android.content.pm.LauncherApps
+import android.graphics.drawable.Drawable
 import android.os.Process
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Box
-import androidx.compose.foundation.layout.BoxWithConstraints
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.shape.CircleShape
@@ -19,6 +19,7 @@ import androidx.compose.material.icons.filled.Star
 import androidx.compose.material.icons.filled.WbSunny
 import androidx.compose.material3.Icon
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.remember
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
@@ -28,17 +29,15 @@ import androidx.compose.ui.graphics.Shape
 import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.platform.LocalContext
-import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
 import coil.compose.AsyncImage
-import coil.compose.SubcomposeAsyncImage
 import coil.request.ImageRequest
 import com.kidspace.launcher.data.model.TileType
 import com.kidspace.launcher.util.IconKeyGenerator
 
-/** Corner radius as a fraction of the laid-out icon slot (after tile padding). */
-private const val RasterIconCornerFraction = 0.12f
+/** Corner radius as a fraction of the icon slot (0–100 for [RoundedCornerShape]). */
+private const val RasterIconCornerPercent = 12
 
 @Composable
 fun TileIcon(
@@ -57,14 +56,16 @@ fun TileIcon(
     }
     val roundCorners = usesRasterClip(iconKey, type)
     val resolvedScale = resolveContentScale(type, iconKey, contentScale)
+    val context = LocalContext.current
 
     when {
         iconKey.startsWith("app:") -> {
-            val context = LocalContext.current
             val packageName = iconKey.removePrefix("app:")
-            val drawable = runCatching {
-                context.packageManager.getApplicationIcon(packageName)
-            }.getOrNull()
+            val drawable = remember(iconKey) {
+                runCatching {
+                    context.packageManager.getApplicationIcon(packageName)
+                }.getOrNull()
+            }
             if (drawable != null) {
                 IconSlot(modifier = iconModifier, roundCorners = false) {
                     AsyncImage(
@@ -84,50 +85,23 @@ fun TileIcon(
                 FallbackIcon(iconKey, iconModifier, size, tint)
             } else {
                 IconSlot(modifier = iconModifier, roundCorners = true) {
-                    SubcomposeAsyncImage(
-                        model = ImageRequest.Builder(LocalContext.current)
-                            .data(url)
-                            .crossfade(true)
-                            .build(),
+                    AsyncImage(
+                        model = remember(url, context) {
+                            ImageRequest.Builder(context)
+                                .data(url)
+                                .crossfade(false)
+                                .build()
+                        },
                         contentDescription = null,
                         modifier = Modifier.fillMaxSize(),
                         contentScale = resolvedScale,
-                        loading = {
-                            FallbackIcon(iconKey, Modifier.fillMaxSize(), size, tint.copy(alpha = 0.5f))
-                        },
-                        error = {
-                            FallbackIcon(iconKey, Modifier.fillMaxSize(), size, tint)
-                        },
                     )
                 }
             }
         }
         iconKey.startsWith("shortcut:") -> {
-            val context = LocalContext.current
-            val parsed = IconKeyGenerator.parseShortcutIconKey(iconKey)
-            val drawable = if (parsed != null) {
-                val (hostPackage, shortcutId) = parsed
-                val launcherApps = context.getSystemService(LauncherApps::class.java)
-                runCatching {
-                    val query = LauncherApps.ShortcutQuery().apply {
-                        setPackage(hostPackage)
-                        setShortcutIds(listOf(shortcutId))
-                        setQueryFlags(
-                            LauncherApps.ShortcutQuery.FLAG_MATCH_PINNED or
-                                LauncherApps.ShortcutQuery.FLAG_MATCH_MANIFEST or
-                                LauncherApps.ShortcutQuery.FLAG_MATCH_DYNAMIC,
-                        )
-                    }
-                    val shortcut = launcherApps?.getShortcuts(query, Process.myUserHandle())?.firstOrNull()
-                    shortcut?.let {
-                        launcherApps.getShortcutIconDrawable(
-                            it,
-                            context.resources.displayMetrics.densityDpi,
-                        )
-                    }
-                }.getOrNull()
-            } else {
-                null
+            val drawable = remember(iconKey) {
+                loadShortcutIcon(context, iconKey)
             }
             if (drawable != null) {
                 IconSlot(modifier = iconModifier, roundCorners = false) {
@@ -152,20 +126,16 @@ fun TileIcon(
                 IconKeyGenerator.faviconUrl(target)
             }
             IconSlot(modifier = iconModifier, roundCorners = roundCorners) {
-                SubcomposeAsyncImage(
-                    model = ImageRequest.Builder(LocalContext.current)
-                        .data(url)
-                        .crossfade(true)
-                        .build(),
+                AsyncImage(
+                    model = remember(url, context) {
+                        ImageRequest.Builder(context)
+                            .data(url)
+                            .crossfade(false)
+                            .build()
+                    },
                     contentDescription = null,
                     modifier = Modifier.fillMaxSize(),
                     contentScale = resolvedScale,
-                    loading = {
-                        FallbackIcon(iconKey, Modifier.fillMaxSize(), size, tint.copy(alpha = 0.5f))
-                    },
-                    error = {
-                        FallbackIcon(iconKey, Modifier.fillMaxSize(), size, tint)
-                    },
                 )
             }
         }
@@ -173,41 +143,49 @@ fun TileIcon(
     }
 }
 
-/**
- * Lays out the icon in its final slot, then clips raster artwork with a radius derived from
- * that slot — not from the source bitmap resolution.
- */
+private fun loadShortcutIcon(context: android.content.Context, iconKey: String): Drawable? {
+    val parsed = IconKeyGenerator.parseShortcutIconKey(iconKey) ?: return null
+    val (hostPackage, shortcutId) = parsed
+    val launcherApps = context.getSystemService(LauncherApps::class.java) ?: return null
+    return runCatching {
+        val query = LauncherApps.ShortcutQuery().apply {
+            setPackage(hostPackage)
+            setShortcutIds(listOf(shortcutId))
+            setQueryFlags(
+                LauncherApps.ShortcutQuery.FLAG_MATCH_PINNED or
+                    LauncherApps.ShortcutQuery.FLAG_MATCH_MANIFEST or
+                    LauncherApps.ShortcutQuery.FLAG_MATCH_DYNAMIC,
+            )
+        }
+        val shortcut = launcherApps.getShortcuts(query, Process.myUserHandle())?.firstOrNull()
+        shortcut?.let {
+            launcherApps.getShortcutIconDrawable(
+                it,
+                context.resources.displayMetrics.densityDpi,
+            )
+        }
+    }.getOrNull()
+}
+
 @Composable
 private fun IconSlot(
     modifier: Modifier,
     roundCorners: Boolean,
     content: @Composable () -> Unit,
 ) {
-    BoxWithConstraints(
-        modifier = modifier,
+    val shape: Shape = if (roundCorners) {
+        RoundedCornerShape(RasterIconCornerPercent)
+    } else {
+        RectangleShape
+    }
+    Box(
+        modifier = modifier
+            .fillMaxSize()
+            .clip(shape),
         contentAlignment = Alignment.Center,
     ) {
-        val shape = if (roundCorners) {
-            rasterClipShape(minOf(maxWidth, maxHeight))
-        } else {
-            RectangleShape
-        }
-        Box(
-            modifier = Modifier
-                .fillMaxSize()
-                .clip(shape),
-            contentAlignment = Alignment.Center,
-        ) {
-            content()
-        }
+        content()
     }
-}
-
-@Composable
-private fun rasterClipShape(slotSize: Dp): Shape {
-    val density = LocalDensity.current
-    val radiusPx = with(density) { slotSize.toPx() * RasterIconCornerFraction }
-    return RoundedCornerShape(with(density) { radiusPx.toDp() })
 }
 
 private fun usesRasterClip(iconKey: String, type: TileType): Boolean {
