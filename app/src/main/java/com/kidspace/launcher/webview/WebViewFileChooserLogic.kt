@@ -13,8 +13,6 @@ object WebViewFileChooserLogic {
     fun shouldUseCameraCapture(params: WebChromeClient.FileChooserParams?): Boolean =
         params?.isCaptureEnabled == true
 
-    fun mimeTypesFromAcceptTypes(acceptTypes: Array<String>?): Array<String> {
-        val filtered = acceptTypes?.filter { it.isNotBlank() } ?: emptyList()
-        return if (filtered.isEmpty()) arrayOf("*/*") else filtered.toTypedArray()
-    }
+    fun mimeTypesFromAcceptTypes(acceptTypes: Array<String>?): Array<String> =
+        WebViewFileChooserUriAccess.normalizeAcceptTypes(acceptTypes)
 }

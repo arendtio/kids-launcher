@@ -1,5 +1,6 @@
 package com.kidspace.launcher.webview
 
+import android.content.ActivityNotFoundException
 import android.content.Intent
 import android.Manifest
 import android.content.pm.PackageManager
@@ -16,12 +17,11 @@ import java.io.File
 /**
  * Handles [WebChromeClient.onShowFileChooser] for `<input type="file">` in the in-app browser.
  *
- * Regular file picking is gated by [fileUploadPolicy]. Camera capture (`capture` attribute) uses
- * [cameraCapturePolicy] separately from WebRTC camera access.
+ * URIs must be delivered to [ValueCallback.onReceiveValue] immediately when the picker returns.
+ * Deferring breaks `input.files` population in many WebViews (the page never reaches `confirm()`).
  */
 class WebViewFileChooserHandler(
     private val activity: ComponentActivity,
-    private val hostResumeGate: WebViewHostResumeGate,
     private val fileUploadPolicy: PermissionPolicy,
     private val cameraCapturePolicy: PermissionPolicy,
 ) {
@@ -29,16 +29,14 @@ class WebViewFileChooserHandler(
     private var pendingCaptureAfterPermission = false
     private var photoUri: Uri? = null
 
-    private val singleFileLauncher = activity.registerForActivityResult(
-        ActivityResultContracts.OpenDocument(),
-    ) { uri ->
-        deliverResult(if (uri != null) arrayOf(uri) else null)
-    }
-
-    private val multipleFileLauncher = activity.registerForActivityResult(
-        ActivityResultContracts.OpenMultipleDocuments(),
-    ) { uris ->
-        deliverResult(if (uris.isEmpty()) null else uris.toTypedArray())
+    private val fileChooserLauncher = activity.registerForActivityResult(
+        ActivityResultContracts.StartActivityForResult(),
+    ) { result ->
+        val uris = WebChromeClient.FileChooserParams.parseResult(
+            result.resultCode,
+            result.data,
+        )
+        deliverResult(uris)
     }
 
     private val takePictureLauncher = activity.registerForActivityResult(
@@ -91,13 +89,7 @@ class WebViewFileChooserHandler(
             return true
         }
 
-        val mimeTypes = WebViewFileChooserLogic.mimeTypesFromAcceptTypes(params?.acceptTypes)
-        val mode = params?.mode ?: WebChromeClient.FileChooserParams.MODE_OPEN
-        if (mode == WebChromeClient.FileChooserParams.MODE_OPEN_MULTIPLE) {
-            multipleFileLauncher.launch(mimeTypes)
-        } else {
-            singleFileLauncher.launch(mimeTypes)
-        }
+        launchDocumentPicker(params)
         return true
     }
 
@@ -105,6 +97,29 @@ class WebViewFileChooserHandler(
         pendingCaptureAfterPermission = false
         photoUri = null
         deliverResult(null)
+    }
+
+    private fun launchDocumentPicker(params: WebChromeClient.FileChooserParams?) {
+        val intent = params?.createIntent() ?: buildFallbackIntent(params)
+        try {
+            fileChooserLauncher.launch(intent)
+        } catch (_: ActivityNotFoundException) {
+            deliverResult(null)
+        }
+    }
+
+    private fun buildFallbackIntent(params: WebChromeClient.FileChooserParams?): Intent {
+        val mimeTypes = WebViewFileChooserLogic.mimeTypesFromAcceptTypes(params?.acceptTypes)
+        return Intent(Intent.ACTION_OPEN_DOCUMENT).apply {
+            addCategory(Intent.CATEGORY_OPENABLE)
+            type = if (mimeTypes.size == 1) mimeTypes[0] else "*/*"
+            if (mimeTypes.size > 1) {
+                putExtra(Intent.EXTRA_MIME_TYPES, mimeTypes)
+            }
+            if (params?.mode == WebChromeClient.FileChooserParams.MODE_OPEN_MULTIPLE) {
+                putExtra(Intent.EXTRA_ALLOW_MULTIPLE, true)
+            }
+        }
     }
 
     private fun launchTakePicture() {
@@ -118,28 +133,31 @@ class WebViewFileChooserHandler(
     }
 
     private fun deliverResult(uris: Array<Uri>?) {
-        uris?.forEach { uri ->
-            activity.grantUriPermission(
-                activity.packageName,
-                uri,
-                Intent.FLAG_GRANT_READ_URI_PERMISSION,
-            )
-            runCatching {
-                activity.contentResolver.takePersistableUriPermission(
-                    uri,
-                    Intent.FLAG_GRANT_READ_URI_PERMISSION,
-                )
-            }
-        }
         val callback = pendingCallback
         pendingCallback = null
         if (callback == null) return
 
-        // Activity-result callbacks run before WebView.onResume; defer JS until host is ready.
-        hostResumeGate.runWhenReady {
-            activity.window.decorView.post {
-                callback.onReceiveValue(uris)
-            }
+        if (uris == null) {
+            callback.onReceiveValue(null)
+            return
+        }
+
+        val prepared = WebViewFileChooserUriAccess.prepareForWebView(activity, uris)
+        prepared.forEach { uri -> grantReadPermission(uri) }
+        callback.onReceiveValue(prepared)
+    }
+
+    private fun grantReadPermission(uri: Uri) {
+        activity.grantUriPermission(
+            activity.packageName,
+            uri,
+            Intent.FLAG_GRANT_READ_URI_PERMISSION,
+        )
+        runCatching {
+            activity.contentResolver.takePersistableUriPermission(
+                uri,
+                Intent.FLAG_GRANT_READ_URI_PERMISSION,
+            )
         }
     }
 }

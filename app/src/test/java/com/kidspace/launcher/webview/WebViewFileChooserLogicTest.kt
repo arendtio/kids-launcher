@@ -39,10 +39,11 @@ class WebViewFileChooserLogicTest {
     }
 
     @Test
-    fun mimeTypesFromAcceptTypes_filtersBlankEntries() {
-        assertArrayEquals(
-            arrayOf("image/*", "application/pdf"),
-            WebViewFileChooserLogic.mimeTypesFromAcceptTypes(arrayOf("image/*", "", "application/pdf")),
+    fun mimeTypesFromAcceptTypes_mapsZipBackupAcceptList() {
+        val normalized = WebViewFileChooserLogic.mimeTypesFromAcceptTypes(
+            arrayOf(".zip", "application/zip"),
         )
+        assertTrue(normalized.contains("application/zip"))
+        assertTrue(normalized.contains("application/octet-stream"))
     }
 }
