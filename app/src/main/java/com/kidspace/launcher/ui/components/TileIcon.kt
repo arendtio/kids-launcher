@@ -1,5 +1,7 @@
 package com.kidspace.launcher.ui.components
 
+import android.content.pm.LauncherApps
+import android.os.Process
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.fillMaxSize
@@ -87,6 +89,47 @@ fun TileIcon(
                     },
                 )
             }
+        }
+        iconKey.startsWith("shortcut:") -> {
+            val context = LocalContext.current
+            val parsed = IconKeyGenerator.parseShortcutIconKey(iconKey)
+            val drawable = if (parsed != null) {
+                val (hostPackage, shortcutId) = parsed
+                val launcherApps = context.getSystemService(LauncherApps::class.java)
+                runCatching {
+                    val query = LauncherApps.ShortcutQuery().apply {
+                        setPackage(hostPackage)
+                        setShortcutIds(listOf(shortcutId))
+                        setQueryFlags(
+                            LauncherApps.ShortcutQuery.FLAG_MATCH_PINNED or
+                                LauncherApps.ShortcutQuery.FLAG_MATCH_MANIFEST or
+                                LauncherApps.ShortcutQuery.FLAG_MATCH_DYNAMIC,
+                        )
+                    }
+                    val shortcut = launcherApps?.getShortcuts(query, Process.myUserHandle())?.firstOrNull()
+                    shortcut?.let {
+                        launcherApps.getShortcutIconDrawable(
+                            it,
+                            context.resources.displayMetrics.densityDpi,
+                        )
+                    }
+                }.getOrNull()
+            } else {
+                null
+            }
+            if (drawable != null) {
+                AsyncImage(
+                    model = drawable,
+                    contentDescription = null,
+                    modifier = iconModifier.clip(shape),
+                    contentScale = contentScale,
+                )
+            } else {
+                FallbackIcon("random:star", iconModifier, size, tint)
+            }
+        }
+        iconKey.startsWith("legacy:") -> {
+            FallbackIcon("random:star", iconModifier, size, tint)
         }
         iconKey.startsWith("favicon:") || iconKey.startsWith("http") -> {
             val url = if (iconKey.startsWith("http")) {

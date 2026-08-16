@@ -10,7 +10,8 @@ As a parent, I want to unlock a protected area so I can manage apps, links, and 
 - [ ] Parent gate shows a **random sequence of numbers as English words** (e.g. "three, seven, one")
 - [ ] User enters digits on a numeric pinpad; correct entry grants parent access
 - [ ] Challenge regenerates on each attempt
-- [ ] Parent area shows **all installed launchable apps**
+- [ ] Parent area shows **all installed launchable apps** and **pinned web shortcuts** from browsers (Chrome, Firefox, and other supported browsers) when KidSpace is the default launcher
+- [ ] Browser “Add to home screen” / pin-shortcut requests are accepted via Android shortcut APIs while KidSpace is the default launcher
 - [ ] Parent can add apps, websites, or YouTube links to the child surface
 - [ ] Parent can search YouTube by keyword and add multiple videos from search results (see feature 06)
 - [ ] Parent can **start** any installed app directly from the Apps list without adding it to the child surface
