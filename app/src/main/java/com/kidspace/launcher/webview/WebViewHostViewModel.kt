@@ -3,15 +3,15 @@ package com.kidspace.launcher.webview
 import android.webkit.WebView
 import androidx.lifecycle.ViewModel
 
-/** Keeps the [WebView] instance across configuration changes when the file picker is not open. */
+/** Keeps the [WebView] instance across configuration changes when host session allows it. */
 class WebViewHostViewModel : ViewModel() {
     var webView: WebView? = null
 
     override fun onCleared() {
         val current = webView
         webView = null
-        if (current != null && WebViewImportSession.shouldRetainWebView()) {
-            WebViewUploadSession.retain(current)
+        if (current != null && WebViewHostSession.shouldRetainWebView) {
+            WebViewHostSession.retain(current)
         } else {
             current?.destroy()
         }
