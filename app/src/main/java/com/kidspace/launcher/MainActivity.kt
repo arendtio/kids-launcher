@@ -105,7 +105,6 @@ class MainActivity : ComponentActivity() {
                             errorMessage = parentGate.errorMessage,
                             onDigit = viewModel::onParentDigit,
                             onBackspace = viewModel::onParentBackspace,
-                            onSubmit = viewModel::submitParentGate,
                             onCancel = viewModel::cancelParentGate,
                         )
                         AppScreen.PARENT -> ParentModeScreen(

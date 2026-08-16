@@ -44,7 +44,6 @@ fun ParentGateScreen(
     errorMessage: String?,
     onDigit: (Int) -> Unit,
     onBackspace: () -> Unit,
-    onSubmit: () -> Unit,
     onCancel: () -> Unit,
     modifier: Modifier = Modifier,
 ) {
@@ -139,17 +138,10 @@ fun ParentGateScreen(
             ) {
                 OutlinedButton(
                     onClick = onCancel,
-                    modifier = Modifier.weight(1f),
+                    modifier = Modifier.fillMaxWidth(),
                     colors = ButtonDefaults.outlinedButtonColors(contentColor = Color.White),
                 ) {
                     Text("Cancel")
-                }
-                Button(
-                    onClick = onSubmit,
-                    modifier = Modifier.weight(1f),
-                    colors = ButtonDefaults.buttonColors(containerColor = Color(0xFFFFD54F)),
-                ) {
-                    Text("Unlock", color = Color(0xFF1A237E), fontWeight = FontWeight.Bold)
                 }
             }
         }

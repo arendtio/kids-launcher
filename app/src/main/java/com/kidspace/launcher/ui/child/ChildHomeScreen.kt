@@ -155,17 +155,15 @@ private fun ChildHeader(
                 fontWeight = FontWeight.Medium,
                 textAlign = TextAlign.Center,
             )
-            if (!compact) {
-                Spacer(modifier = Modifier.height(6.dp))
-                Text(
-                    text = "Parents: long-press here for parent mode",
-                    fontSize = 13.sp,
-                    color = secondary,
-                    fontWeight = FontWeight.Medium,
-                    textAlign = TextAlign.Center,
-                    lineHeight = 16.sp,
-                )
-            }
+            Spacer(modifier = Modifier.height(if (compact) 2.dp else 6.dp))
+            Text(
+                text = "Parents: long-press here for parent mode",
+                fontSize = if (compact) 11.sp else 13.sp,
+                color = secondary,
+                fontWeight = FontWeight.Medium,
+                textAlign = TextAlign.Center,
+                lineHeight = if (compact) 13.sp else 16.sp,
+            )
         }
     }
 }
