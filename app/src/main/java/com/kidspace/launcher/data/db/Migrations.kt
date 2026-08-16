@@ -17,3 +17,11 @@ val MIGRATION_2_3 = object : Migration(2, 3) {
         db.execSQL("ALTER TABLE child_tiles ADD COLUMN fileUploadPolicy TEXT NOT NULL DEFAULT 'DENY'")
     }
 }
+
+val MIGRATION_3_4 = object : Migration(3, 4) {
+    override fun migrate(db: SupportSQLiteDatabase) {
+        db.execSQL("ALTER TABLE child_tiles ADD COLUMN downloadPolicy TEXT NOT NULL DEFAULT 'DENY'")
+        db.execSQL("ALTER TABLE child_tiles ADD COLUMN fullscreenPolicy TEXT NOT NULL DEFAULT 'GRANT'")
+        db.execSQL("ALTER TABLE child_tiles ADD COLUMN cameraCapturePolicy TEXT NOT NULL DEFAULT 'DENY'")
+    }
+}

@@ -227,6 +227,9 @@ class LauncherViewModel(
                     microphonePolicy = webConfig.microphonePolicy,
                     locationPolicy = webConfig.locationPolicy,
                     fileUploadPolicy = webConfig.fileUploadPolicy,
+                    downloadPolicy = webConfig.downloadPolicy,
+                    fullscreenPolicy = webConfig.fullscreenPolicy,
+                    cameraCapturePolicy = webConfig.cameraCapturePolicy,
                 ),
             )
         }
@@ -405,6 +408,9 @@ class LauncherViewModel(
                         microphonePolicy = webConfig.microphonePolicy,
                         locationPolicy = webConfig.locationPolicy,
                         fileUploadPolicy = webConfig.fileUploadPolicy,
+                        downloadPolicy = webConfig.downloadPolicy,
+                        fullscreenPolicy = webConfig.fullscreenPolicy,
+                        cameraCapturePolicy = webConfig.cameraCapturePolicy,
                     )
                 }
             }
@@ -436,6 +442,9 @@ class LauncherViewModel(
         microphonePolicy = PermissionPolicy.GRANT,
         locationPolicy = PermissionPolicy.DENY,
         fileUploadPolicy = PermissionPolicy.DENY,
+        downloadPolicy = PermissionPolicy.DENY,
+        fullscreenPolicy = PermissionPolicy.GRANT,
+        cameraCapturePolicy = PermissionPolicy.DENY,
     )
 
     fun openChildAppearance() {

@@ -18,6 +18,21 @@ class WebViewFileChooserLogicTest {
     }
 
     @Test
+    fun isCaptureAllowed_grantReturnsTrue() {
+        assertTrue(WebViewFileChooserLogic.isCaptureAllowed(PermissionPolicy.GRANT))
+    }
+
+    @Test
+    fun isCaptureAllowed_denyReturnsFalse() {
+        assertFalse(WebViewFileChooserLogic.isCaptureAllowed(PermissionPolicy.DENY))
+    }
+
+    @Test
+    fun shouldUseCameraCapture_nullParamsReturnsFalse() {
+        assertFalse(WebViewFileChooserLogic.shouldUseCameraCapture(null))
+    }
+
+    @Test
     fun mimeTypesFromAcceptTypes_emptyUsesWildcard() {
         assertArrayEquals(arrayOf("*/*"), WebViewFileChooserLogic.mimeTypesFromAcceptTypes(null))
         assertArrayEquals(arrayOf("*/*"), WebViewFileChooserLogic.mimeTypesFromAcceptTypes(emptyArray()))
