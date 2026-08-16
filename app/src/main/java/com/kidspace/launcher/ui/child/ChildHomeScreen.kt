@@ -288,7 +288,7 @@ private fun ChildTileCard(
                     type = tile.type,
                     target = tile.target,
                     iconKey = tile.iconKey,
-                    modifier = Modifier.fillMaxSize(0.88f),
+                    modifier = Modifier.fillMaxSize(),
                     tint = primary,
                 )
             }

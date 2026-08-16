@@ -38,14 +38,10 @@ import com.kidspace.launcher.util.IconKeyGenerator
 /**
  * Corner radius for raster tile icons (PWA, thumbnails).
  *
- * Android adaptive icons use an OEM mask on a 108dp canvas with a 66dp safe zone; at typical
- * launcher sizes that reads as roughly 12% corner radius — not the 30% used for Play Store
- * marketing assets. See developer.android.com/develop/ui/compose/system/icon_design_adaptive
+ * Android adaptive icons use an OEM mask on a 108dp canvas; at typical launcher tile sizes
+ * that reads as roughly 12% — not the 30% used for Play Store marketing assets.
  */
 private const val RasterIconCornerPercent = 12
-
-/** Inset mimics adaptive-icon safe zone so full-bleed artwork is not clipped at the corners. */
-private const val RasterIconInsetFraction = 0.92f
 
 private val RasterIconShape: Shape = RoundedCornerShape(percent = RasterIconCornerPercent)
 
@@ -104,7 +100,6 @@ fun TileIcon(
                 ClippedIconImage(
                     modifier = iconModifier,
                     shape = rasterIconShape(size),
-                    insetFraction = RasterIconInsetFraction,
                 ) {
                     SubcomposeAsyncImage(
                         model = ImageRequest.Builder(LocalContext.current)
@@ -179,7 +174,6 @@ fun TileIcon(
             ClippedIconImage(
                 modifier = iconModifier,
                 shape = rasterIconShape(size),
-                insetFraction = RasterIconInsetFraction,
             ) {
                 SubcomposeAsyncImage(
                     model = ImageRequest.Builder(LocalContext.current)
@@ -206,23 +200,13 @@ fun TileIcon(
 private fun ClippedIconImage(
     modifier: Modifier,
     shape: Shape,
-    insetFraction: Float = 1f,
     content: @Composable () -> Unit,
 ) {
     Box(
         modifier = modifier.clip(shape),
         contentAlignment = Alignment.Center,
     ) {
-        Box(
-            modifier = if (insetFraction >= 1f) {
-                Modifier.fillMaxSize()
-            } else {
-                Modifier.fillMaxSize(insetFraction)
-            },
-            contentAlignment = Alignment.Center,
-        ) {
-            content()
-        }
+        content()
     }
 }
 
