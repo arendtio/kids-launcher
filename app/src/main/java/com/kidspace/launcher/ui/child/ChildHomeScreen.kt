@@ -214,14 +214,12 @@ private fun AppearanceTileCard(
     accent: Color,
     onClick: () -> Unit,
 ) {
-    Card(
+    Box(
         modifier = Modifier
             .aspectRatio(1f)
             .clip(RoundedCornerShape(20.dp))
+            .background(accent.copy(alpha = 0.92f))
             .combinedClickable(onClick = onClick),
-        shape = RoundedCornerShape(20.dp),
-        colors = CardDefaults.cardColors(containerColor = accent.copy(alpha = 0.92f)),
-        elevation = CardDefaults.cardElevation(defaultElevation = 0.dp),
     ) {
         Column(
             modifier = Modifier
@@ -264,14 +262,12 @@ private fun ChildTileCard(
     primary: Color,
     onClick: () -> Unit,
 ) {
-    Card(
+    Box(
         modifier = Modifier
             .aspectRatio(1f)
             .clip(RoundedCornerShape(20.dp))
+            .background(Color.White.copy(alpha = 0.94f))
             .combinedClickable(onClick = onClick),
-        shape = RoundedCornerShape(20.dp),
-        colors = CardDefaults.cardColors(containerColor = Color.White.copy(alpha = 0.94f)),
-        elevation = CardDefaults.cardElevation(defaultElevation = 0.dp),
     ) {
         Column(
             modifier = Modifier

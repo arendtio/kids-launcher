@@ -4,19 +4,16 @@ import android.content.Context
 import coil.imageLoader
 import coil.request.ImageRequest
 import com.kidspace.launcher.data.model.ChildTile
-import com.kidspace.launcher.data.model.TileType
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.withContext
 
 object TileIconPreloader {
 
-    const val EagerLoadTileLimit = 100
-
     fun remoteImageUrl(iconKey: String, target: String): String? {
         return when {
             iconKey.startsWith("youtube:") -> IconKeyGenerator.youtubeThumbnailUrl(iconKey)
-            iconKey.startsWith("http") && !SiteIconResolver.isGoogleFaviconFallback(iconKey) -> iconKey
-            iconKey.startsWith("favicon:") -> null
+            iconKey.startsWith("http") -> iconKey
+            iconKey.startsWith("favicon:") -> IconKeyGenerator.faviconUrl(target)
             else -> null
         }
     }
