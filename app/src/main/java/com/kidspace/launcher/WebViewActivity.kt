@@ -1,8 +1,10 @@
 package com.kidspace.launcher
 
 import android.annotation.SuppressLint
+import android.content.Intent
 import android.net.Uri
 import android.os.Bundle
+import android.view.Gravity
 import android.view.ViewGroup
 import android.webkit.PermissionRequest
 import android.webkit.ValueCallback
@@ -11,7 +13,11 @@ import android.webkit.WebResourceRequest
 import android.webkit.WebSettings
 import android.webkit.WebView
 import android.webkit.WebViewClient
+import android.widget.Button
 import android.widget.FrameLayout
+import android.widget.LinearLayout
+import android.widget.ScrollView
+import android.widget.TextView
 import androidx.activity.ComponentActivity
 import androidx.activity.addCallback
 import androidx.core.view.WindowCompat
@@ -24,6 +30,7 @@ import com.kidspace.launcher.webview.WebViewGeolocationHandler
 import com.kidspace.launcher.webview.WebViewHostResumeGate
 import com.kidspace.launcher.webview.WebViewJsDialogHandler
 import com.kidspace.launcher.webview.WebViewPermissionHandler
+import com.kidspace.launcher.webview.WebViewUploadDebugTrace
 
 class WebViewActivity : ComponentActivity() {
 
@@ -36,6 +43,7 @@ class WebViewActivity : ComponentActivity() {
     private lateinit var fullscreenHandler: WebViewFullscreenHandler
     private lateinit var jsDialogHandler: WebViewJsDialogHandler
     private lateinit var hostResumeGate: WebViewHostResumeGate
+    private var uploadDebugTrace: WebViewUploadDebugTrace? = null
 
     @SuppressLint("SetJavaScriptEnabled")
     override fun onCreate(savedInstanceState: Bundle?) {
@@ -69,6 +77,11 @@ class WebViewActivity : ComponentActivity() {
             ?.let(PermissionPolicy::valueOf)
             ?: PermissionPolicy.DENY
         val normalizedUrl = DomainMatcher.normalizeUrl(startUrl)
+        val uploadDebugEnabled = fileUploadPolicy == PermissionPolicy.GRANT
+        var uploadDebugText: TextView? = null
+        uploadDebugTrace = WebViewUploadDebugTrace(uploadDebugEnabled) { text ->
+            runOnUiThread { uploadDebugText?.text = text }
+        }
 
         hostResumeGate = WebViewHostResumeGate { !isFinishing && !isDestroyed }
         permissionHandler = WebViewPermissionHandler(
@@ -80,6 +93,7 @@ class WebViewActivity : ComponentActivity() {
             activity = this,
             fileUploadPolicy = fileUploadPolicy,
             cameraCapturePolicy = cameraCapturePolicy,
+            debugTrace = uploadDebugTrace,
         )
         geolocationHandler = WebViewGeolocationHandler(
             activity = this,
@@ -92,6 +106,7 @@ class WebViewActivity : ComponentActivity() {
         jsDialogHandler = WebViewJsDialogHandler(
             activity = this,
             hostResumeGate = hostResumeGate,
+            debugTrace = uploadDebugTrace,
         )
 
         rootLayout = FrameLayout(this)
@@ -199,6 +214,10 @@ class WebViewActivity : ComponentActivity() {
         }
 
         rootLayout.addView(webView)
+        if (uploadDebugEnabled) {
+            uploadDebugText = attachUploadDebugOverlay()
+            uploadDebugTrace?.event("Upload-Debug aktiv für $normalizedUrl")
+        }
         fullscreenHandler = WebViewFullscreenHandler(
             activity = this,
             root = rootLayout,
@@ -274,6 +293,55 @@ class WebViewActivity : ComponentActivity() {
             webView.destroy()
         }
         super.onDestroy()
+    }
+
+    private fun attachUploadDebugOverlay(): TextView {
+        val textView = TextView(this).apply {
+            setTextColor(0xFFFFFFFF.toInt())
+            setBackgroundColor(0xCC000000.toInt())
+            textSize = 11f
+            setPadding(16, 12, 16, 12)
+            text = "Upload-Debug aktiv. Wähle eine Datei …"
+        }
+        val scrollView = ScrollView(this).apply {
+            addView(textView)
+        }
+        val shareButton = Button(this).apply {
+            text = "Log teilen"
+            setOnClickListener { shareUploadDebugLog() }
+        }
+        val panel = LinearLayout(this).apply {
+            orientation = LinearLayout.VERTICAL
+            setBackgroundColor(0xCC000000.toInt())
+            addView(
+                scrollView,
+                LinearLayout.LayoutParams(
+                    ViewGroup.LayoutParams.MATCH_PARENT,
+                    0,
+                    1f,
+                ),
+            )
+            addView(shareButton)
+        }
+        rootLayout.addView(
+            panel,
+            FrameLayout.LayoutParams(
+                ViewGroup.LayoutParams.MATCH_PARENT,
+                (resources.displayMetrics.heightPixels * 0.28f).toInt(),
+                Gravity.BOTTOM,
+            ),
+        )
+        return textView
+    }
+
+    private fun shareUploadDebugLog() {
+        val text = uploadDebugTrace?.shareText() ?: return
+        val intent = Intent(Intent.ACTION_SEND).apply {
+            type = "text/plain"
+            putExtra(Intent.EXTRA_SUBJECT, "KidSpace Upload Debug")
+            putExtra(Intent.EXTRA_TEXT, text)
+        }
+        startActivity(Intent.createChooser(intent, "Upload-Debug teilen"))
     }
 
     companion object {
