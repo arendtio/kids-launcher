@@ -21,3 +21,9 @@ captures/
 
 # SDK (local)
 android-sdk/
+
+# Signing — never commit keys or passwords (public repo)
+keystore/
+keystore.properties
+*.jks
+*.keystore

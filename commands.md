@@ -13,7 +13,7 @@ Set `ANDROID_HOME` (default: `$HOME/android-sdk`) and ensure SDK components are 
 - `cp app/build/outputs/apk/debug/app-debug.apk releases/KidSpace-debug.apk` — Update committed debug APK in `releases/`
 - `cp app/build/outputs/apk/release/app-release.apk releases/KidSpace-release.apk` — Update committed release APK in `releases/`
 
-Signing uses `keystore/kidspace.jks` (see `keystore.properties`).
+Signing uses a local gitignored `keystore.properties` or environment variables (`KIDSPACE_KEYSTORE_FILE`, `KIDSPACE_KEYSTORE_PASSWORD`, `KIDSPACE_KEY_ALIAS`, `KIDSPACE_KEY_PASSWORD`). **Never commit keystore files or passwords** — this is a public repository.
 
 ## Test Commands
 

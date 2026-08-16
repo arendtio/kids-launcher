@@ -28,20 +28,30 @@ android {
     }
 
     signingConfigs {
-        create("release") {
-            storeFile = rootProject.file(keystoreProperties["storeFile"] as String)
-            storePassword = keystoreProperties["storePassword"] as String
-            keyAlias = keystoreProperties["keyAlias"] as String
-            keyPassword = keystoreProperties["keyPassword"] as String
+        val storeFilePath = keystoreProperties["storeFile"] as String?
+            ?: System.getenv("KIDSPACE_KEYSTORE_FILE")
+        if (storeFilePath != null) {
+            create("release") {
+                storeFile = rootProject.file(storeFilePath)
+                storePassword = keystoreProperties["storePassword"] as String?
+                    ?: System.getenv("KIDSPACE_KEYSTORE_PASSWORD")
+                        ?: error("Missing KIDSPACE_KEYSTORE_PASSWORD")
+                keyAlias = keystoreProperties["keyAlias"] as String?
+                    ?: System.getenv("KIDSPACE_KEY_ALIAS")
+                        ?: error("Missing KIDSPACE_KEY_ALIAS")
+                keyPassword = keystoreProperties["keyPassword"] as String?
+                    ?: System.getenv("KIDSPACE_KEY_PASSWORD")
+                        ?: error("Missing KIDSPACE_KEY_PASSWORD")
+            }
         }
     }
 
     buildTypes {
         debug {
-            signingConfig = signingConfigs.getByName("release")
+            signingConfigs.findByName("release")?.let { signingConfig = it }
         }
         release {
-            signingConfig = signingConfigs.getByName("release")
+            signingConfigs.findByName("release")?.let { signingConfig = it }
             isMinifyEnabled = false
             proguardFiles(
                 getDefaultProguardFile("proguard-android-optimize.txt"),
