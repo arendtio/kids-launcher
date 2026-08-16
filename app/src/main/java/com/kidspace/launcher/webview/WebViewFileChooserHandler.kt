@@ -17,15 +17,12 @@ import java.io.File
 
 /**
  * Handles [WebChromeClient.onShowFileChooser] for `<input type="file">` in the in-app browser.
- *
- * URIs must be delivered to [ValueCallback.onReceiveValue] immediately when the picker returns.
- * The callback is also stored in [WebViewFileChooserCallbackStore] so it survives activity
- * recreation while the system picker is open.
  */
 class WebViewFileChooserHandler(
     private val activity: ComponentActivity,
     private val fileUploadPolicy: PermissionPolicy,
     private val cameraCapturePolicy: PermissionPolicy,
+    private val webViewProvider: () -> WebView?,
     private val debugTrace: WebViewUploadDebugTrace? = null,
 ) {
     private var pendingCallback: ValueCallback<Array<Uri>>? = null
@@ -36,6 +33,7 @@ class WebViewFileChooserHandler(
     private val fileChooserLauncher = activity.registerForActivityResult(
         ActivityResultContracts.StartActivityForResult(),
     ) { result ->
+        result.data?.addFlags(Intent.FLAG_GRANT_READ_URI_PERMISSION)
         debugTrace?.event(
             "picker result code=${result.resultCode} data=${result.data != null}",
         )
@@ -76,11 +74,11 @@ class WebViewFileChooserHandler(
     ): Boolean {
         if (filePathCallback == null) return false
 
-        boundWebView = webView
-        webView?.let { WebViewUploadSession.bind(it) }
+        boundWebView = webView ?: webViewProvider()
+        boundWebView?.let { WebViewUploadSession.bind(it) }
 
         debugTrace?.event(
-            "showChooser webView=${webView?.hashCode()} accept=${params?.acceptTypes?.joinToString()} " +
+            "showChooser webView=${boundWebView?.hashCode()} accept=${params?.acceptTypes?.joinToString()} " +
                 "mode=${params?.mode} policy=$fileUploadPolicy",
         )
 
@@ -118,6 +116,11 @@ class WebViewFileChooserHandler(
     fun cancel(force: Boolean = false) {
         if (!force && WebViewFileChooserCallbackStore.pickerInFlight) {
             debugTrace?.event("cancel skipped (picker in flight)")
+            pendingCallback = null
+            return
+        }
+        if (!force && WebViewImportSession.importInFlight) {
+            debugTrace?.event("cancel skipped (import in flight)")
             pendingCallback = null
             return
         }
@@ -171,26 +174,31 @@ class WebViewFileChooserHandler(
 
         if (uris == null) {
             debugTrace?.event("deliverResult null → onReceiveValue(null)")
-            postToWebView { callback.onReceiveValue(null) }
+            postToTargetWebView { callback.onReceiveValue(null) }
             return
         }
 
-        val prepared = uris
+        val prepared = WebViewFileChooserUriAccess.prepareForWebView(activity, uris)
         prepared.forEach { uri -> grantReadPermission(uri) }
         debugTrace?.event(
             "deliverResult uris=" +
                 prepared.joinToString { describeUri(activity, it) },
         )
-        val targetWebView = boundWebView ?: WebViewUploadSession.peek()
+        val targetWebView = resolveTargetWebView()
         debugTrace?.event("deliver to webView id=${targetWebView?.hashCode()}")
-        postToWebView(targetWebView) {
+        postToTargetWebView(targetWebView) {
             callback.onReceiveValue(prepared)
+            WebViewFileChooserCallbackStore.markRecentFileDelivery()
             debugTrace?.event("onReceiveValue called")
             boundWebView = null
         }
     }
 
-    private fun postToWebView(webView: WebView? = boundWebView ?: WebViewUploadSession.peek(), action: () -> Unit) {
+    private fun resolveTargetWebView(): WebView? {
+        return boundWebView ?: webViewProvider() ?: WebViewUploadSession.activeWebView()
+    }
+
+    private fun postToTargetWebView(webView: WebView? = resolveTargetWebView(), action: () -> Unit) {
         if (webView != null) {
             webView.post { action() }
         } else {

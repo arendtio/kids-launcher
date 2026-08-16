@@ -2,6 +2,7 @@ package com.kidspace.launcher
 
 import android.annotation.SuppressLint
 import android.content.Intent
+import android.content.res.Configuration
 import android.net.Uri
 import android.os.Bundle
 import android.view.Gravity
@@ -34,6 +35,7 @@ import com.kidspace.launcher.webview.WebViewJsDialogHandler
 import com.kidspace.launcher.webview.WebViewPermissionHandler
 import com.kidspace.launcher.webview.WebViewFileChooserCallbackStore
 import com.kidspace.launcher.webview.WebViewUploadSession
+import com.kidspace.launcher.webview.WebViewImportSession
 import com.kidspace.launcher.webview.WebViewUploadDebugTrace
 
 class WebViewActivity : ComponentActivity() {
@@ -91,6 +93,9 @@ class WebViewActivity : ComponentActivity() {
         }
 
         hostResumeGate = WebViewHostResumeGate { !isFinishing && !isDestroyed }
+        rootLayout = FrameLayout(this)
+        webView = obtainWebView()
+
         permissionHandler = WebViewPermissionHandler(
             activity = this,
             cameraPolicy = cameraPolicy,
@@ -100,6 +105,7 @@ class WebViewActivity : ComponentActivity() {
             activity = this,
             fileUploadPolicy = fileUploadPolicy,
             cameraCapturePolicy = cameraCapturePolicy,
+            webViewProvider = { if (::webView.isInitialized) webView else null },
             debugTrace = uploadDebugTrace,
         )
         geolocationHandler = WebViewGeolocationHandler(
@@ -115,9 +121,6 @@ class WebViewActivity : ComponentActivity() {
             hostResumeGate = hostResumeGate,
             debugTrace = uploadDebugTrace,
         )
-
-        rootLayout = FrameLayout(this)
-        webView = obtainWebView()
         bindWebViewClients(normalizedUrl)
 
         rootLayout.addView(webView)
@@ -161,7 +164,7 @@ class WebViewActivity : ComponentActivity() {
 
     @SuppressLint("SetJavaScriptEnabled")
     private fun obtainWebView(): WebView {
-        WebViewUploadSession.consumeRetained()?.let { retained ->
+        WebViewUploadSession.activeWebView()?.let { retained ->
             viewModel.webView = retained
             uploadDebugTrace?.event("WebView restored from upload session id=${retained.hashCode()}")
             return retained
@@ -178,7 +181,9 @@ class WebViewActivity : ComponentActivity() {
             )
             settings.javaScriptEnabled = true
             settings.domStorageEnabled = true
+            settings.databaseEnabled = true
             settings.allowContentAccess = true
+            settings.cacheMode = WebSettings.LOAD_DEFAULT
             settings.mediaPlaybackRequiresUserGesture = false
             settings.javaScriptCanOpenWindowsAutomatically = true
             settings.setSupportMultipleWindows(false)
@@ -199,6 +204,18 @@ class WebViewActivity : ComponentActivity() {
             ): Boolean {
                 val target = request?.url?.toString() ?: return false
                 return !DomainMatcher.isAllowedNavigation(startUrl, target)
+            }
+
+            override fun onPageStarted(view: WebView?, url: String?, favicon: android.graphics.Bitmap?) {
+                uploadDebugTrace?.event("page started url=$url")
+            }
+
+            override fun onPageFinished(view: WebView?, url: String?) {
+                uploadDebugTrace?.event("page finished url=$url")
+                if (WebViewImportSession.importInFlight) {
+                    WebViewImportSession.markImportFinished()
+                    uploadDebugTrace?.event("import guard released after reload")
+                }
             }
         }
 
@@ -275,6 +292,13 @@ class WebViewActivity : ComponentActivity() {
         }
     }
 
+    override fun onConfigurationChanged(newConfig: Configuration) {
+        super.onConfigurationChanged(newConfig)
+        if (::webView.isInitialized) {
+            webView.invalidate()
+        }
+    }
+
     override fun onResume() {
         super.onResume()
         if (::webView.isInitialized) {
@@ -314,8 +338,14 @@ class WebViewActivity : ComponentActivity() {
             fullscreenHandler.cleanup()
         }
         if (::webView.isInitialized) {
-            webView.stopLoading()
-            if (WebViewFileChooserCallbackStore.pickerInFlight) {
+            if (!WebViewImportSession.importInFlight) {
+                webView.stopLoading()
+            } else {
+                uploadDebugTrace?.event("stopLoading skipped (import in flight)")
+            }
+            if (WebViewImportSession.shouldRetainWebView() ||
+                WebViewFileChooserCallbackStore.pickerInFlight
+            ) {
                 WebViewUploadSession.retain(webView)
             } else {
                 (webView.parent as? ViewGroup)?.removeView(webView)
