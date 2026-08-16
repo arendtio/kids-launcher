@@ -53,6 +53,7 @@ class WebViewActivity : ComponentActivity() {
     private lateinit var hostResumeGate: WebViewHostResumeGate
     private var uploadDebugTrace: WebViewUploadDebugTrace? = null
     private lateinit var startUrl: String
+    private var restoredFromUploadSession = false
 
     @SuppressLint("SetJavaScriptEnabled")
     override fun onCreate(savedInstanceState: Bundle?) {
@@ -103,6 +104,7 @@ class WebViewActivity : ComponentActivity() {
         )
         fileChooserHandler = WebViewFileChooserHandler(
             activity = this,
+            hostResumeGate = hostResumeGate,
             fileUploadPolicy = fileUploadPolicy,
             cameraCapturePolicy = cameraCapturePolicy,
             webViewProvider = { if (::webView.isInitialized) webView else null },
@@ -153,12 +155,19 @@ class WebViewActivity : ComponentActivity() {
             }
         }
 
-        if (savedInstanceState != null) {
-            webView.restoreState(savedInstanceState)
-        } else if (webView.url.isNullOrBlank()) {
-            webView.loadUrl(normalizedUrl)
-        } else {
-            uploadDebugTrace?.event("WebView kept loaded at ${webView.url}")
+        when {
+            restoredFromUploadSession || WebViewFileChooserCallbackStore.pickerInFlight -> {
+                uploadDebugTrace?.event("skipped restoreState (upload session active, url=${webView.url})")
+            }
+            savedInstanceState != null -> {
+                webView.restoreState(savedInstanceState)
+            }
+            webView.url.isNullOrBlank() -> {
+                webView.loadUrl(normalizedUrl)
+            }
+            else -> {
+                uploadDebugTrace?.event("WebView kept loaded at ${webView.url}")
+            }
         }
     }
 
@@ -166,9 +175,11 @@ class WebViewActivity : ComponentActivity() {
     private fun obtainWebView(): WebView {
         WebViewUploadSession.activeWebView()?.let { retained ->
             viewModel.webView = retained
+            restoredFromUploadSession = true
             uploadDebugTrace?.event("WebView restored from upload session id=${retained.hashCode()}")
             return retained
         }
+        restoredFromUploadSession = false
         viewModel.webView?.let { existing ->
             (existing.parent as? ViewGroup)?.removeView(existing)
             uploadDebugTrace?.event("WebView reused from ViewModel id=${existing.hashCode()}")

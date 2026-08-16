@@ -20,6 +20,7 @@ import java.io.File
  */
 class WebViewFileChooserHandler(
     private val activity: ComponentActivity,
+    private val hostResumeGate: WebViewHostResumeGate,
     private val fileUploadPolicy: PermissionPolicy,
     private val cameraCapturePolicy: PermissionPolicy,
     private val webViewProvider: () -> WebView?,
@@ -166,6 +167,15 @@ class WebViewFileChooserHandler(
     }
 
     private fun deliverResult(uris: Array<Uri>?) {
+        if (!hostResumeGate.isReady) {
+            debugTrace?.event("deliverResult deferred until host ready")
+        }
+        hostResumeGate.runWhenReady {
+            deliverResultNow(uris)
+        }
+    }
+
+    private fun deliverResultNow(uris: Array<Uri>?) {
         val callback = resolvePendingCallback()
         if (callback == null) {
             debugTrace?.event("deliverResult skipped (no callback)")
