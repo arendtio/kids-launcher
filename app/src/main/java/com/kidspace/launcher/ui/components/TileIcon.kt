@@ -35,8 +35,25 @@ import coil.request.ImageRequest
 import com.kidspace.launcher.data.model.TileType
 import com.kidspace.launcher.util.IconKeyGenerator
 
-/** Squircle-like rounding for raster icons with full-bleed backgrounds (PWA, thumbnails). */
-private val RasterIconShape: Shape = RoundedCornerShape(percent = 22)
+/**
+ * Corner radius for raster tile icons (PWA, thumbnails).
+ *
+ * Android adaptive icons use an OEM mask on a 108dp canvas with a 66dp safe zone; at typical
+ * launcher sizes that reads as roughly 12% corner radius — not the 30% used for Play Store
+ * marketing assets. See developer.android.com/develop/ui/compose/system/icon_design_adaptive
+ */
+private const val RasterIconCornerPercent = 12
+
+/** Inset mimics adaptive-icon safe zone so full-bleed artwork is not clipped at the corners. */
+private const val RasterIconInsetFraction = 0.92f
+
+private val RasterIconShape: Shape = RoundedCornerShape(percent = RasterIconCornerPercent)
+
+private fun rasterIconShape(size: Dp?): Shape {
+    if (size == null) return RasterIconShape
+    val radius = (size.value * RasterIconCornerPercent / 100f).coerceIn(8f, 16f).dp
+    return RoundedCornerShape(radius)
+}
 
 @Composable
 fun TileIcon(
@@ -86,7 +103,8 @@ fun TileIcon(
             } else {
                 ClippedIconImage(
                     modifier = iconModifier,
-                    shape = RasterIconShape,
+                    shape = rasterIconShape(size),
+                    insetFraction = RasterIconInsetFraction,
                 ) {
                     SubcomposeAsyncImage(
                         model = ImageRequest.Builder(LocalContext.current)
@@ -160,7 +178,8 @@ fun TileIcon(
             }
             ClippedIconImage(
                 modifier = iconModifier,
-                shape = RasterIconShape,
+                shape = rasterIconShape(size),
+                insetFraction = RasterIconInsetFraction,
             ) {
                 SubcomposeAsyncImage(
                     model = ImageRequest.Builder(LocalContext.current)
@@ -187,6 +206,7 @@ fun TileIcon(
 private fun ClippedIconImage(
     modifier: Modifier,
     shape: Shape,
+    insetFraction: Float = 1f,
     content: @Composable () -> Unit,
 ) {
     Box(
@@ -194,7 +214,11 @@ private fun ClippedIconImage(
         contentAlignment = Alignment.Center,
     ) {
         Box(
-            modifier = Modifier.fillMaxSize(),
+            modifier = if (insetFraction >= 1f) {
+                Modifier.fillMaxSize()
+            } else {
+                Modifier.fillMaxSize(insetFraction)
+            },
             contentAlignment = Alignment.Center,
         ) {
             content()
